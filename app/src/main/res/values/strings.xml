@@ -1,3 +1,59 @@
 <resources>
     <string name="app_name">Andoird Project</string>
+
+    <!-- Theme showcase -->
+    <string name="open_theme_showcase">Open Theme Showcase</string>
+    <string name="showcase_title">Theme Showcase</string>
+    <string name="showcase_back">Back</string>
+    <string name="showcase_dot">•</string>
+
+    <!-- Section headers -->
+    <string name="showcase_section_colors">Color roles</string>
+    <string name="showcase_section_typography">Typography</string>
+    <string name="showcase_section_buttons">Buttons</string>
+    <string name="showcase_section_chips">Chips</string>
+    <string name="showcase_section_cards">Cards</string>
+    <string name="showcase_section_inputs">Inputs</string>
+    <string name="showcase_section_progress">Progress</string>
+
+    <!-- Swatch labels -->
+    <string name="swatch_primary">Primary</string>
+    <string name="swatch_primary_container">Primary container</string>
+    <string name="swatch_secondary">Secondary</string>
+    <string name="swatch_secondary_container">Secondary container</string>
+    <string name="swatch_tertiary">Tertiary</string>
+    <string name="swatch_tertiary_container">Tertiary container</string>
+    <string name="swatch_surface">Surface</string>
+    <string name="swatch_surface_variant">Surface variant</string>
+    <string name="swatch_error">Error</string>
+
+    <!-- Typography samples -->
+    <string name="showcase_type_headline">Lecture Notes</string>
+    <string name="showcase_type_title">Week 6 — Activities &amp; Lifecycle</string>
+    <string name="showcase_type_body">Body text uses Material 3 body styles. This is what transcript paragraphs and summary text look like in the LectureLens reader.</string>
+    <string name="showcase_type_label">LABEL · 12:34</string>
+
+    <!-- Buttons -->
+    <string name="showcase_btn_filled">Record lecture</string>
+    <string name="showcase_btn_tonal">Import audio</string>
+    <string name="showcase_btn_outlined">Cancel</string>
+    <string name="showcase_btn_text">Skip</string>
+
+    <!-- Chips -->
+    <string name="showcase_chip_cp670">CP-670</string>
+    <string name="showcase_chip_math301">MATH-301</string>
+    <string name="showcase_chip_hist220">HIST-220</string>
+
+    <!-- Cards -->
+    <string name="showcase_card_lecture_title">Week 6 — Activities &amp; Lifecycle</string>
+    <string name="showcase_card_status_ready">Ready</string>
+    <string name="showcase_card_outlined_body">Outlined cards work for secondary info — settings rows, API key entry, consent reminders.</string>
+
+    <!-- Inputs -->
+    <string name="showcase_input_hint">Search transcripts</string>
+    <string name="showcase_switch_label">Process in background</string>
+    <string name="showcase_checkbox_label">Auto-transcribe on upload</string>
+
+    <!-- FAB -->
+    <string name="showcase_fab_record">Record</string>
 </resources>

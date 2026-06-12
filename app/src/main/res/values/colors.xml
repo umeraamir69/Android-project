@@ -1,5 +1,61 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Neutral -->
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+
+    <!--
+        LectureLens — Material 3 light color tokens.
+        Seed: #008F7A (teal). Secondary: #F4A261 (warm amber). Tertiary: #006874 (cyan).
+        Token names mirror the M3 spec so themes.xml can bind them by role.
+        Dark equivalents live in values-night/colors.xml.
+    -->
+
+    <!-- Brand seed (for splash / non-themed surfaces) -->
+    <color name="brand_teal">#008F7A</color>
+
+    <!-- Primary (teal) -->
+    <color name="md_primary">#006B5C</color>
+    <color name="md_on_primary">#FFFFFF</color>
+    <color name="md_primary_container">#76F8DC</color>
+    <color name="md_on_primary_container">#00201A</color>
+    <color name="md_primary_inverse">#57DBC0</color>
+
+    <!-- Secondary (warm amber) -->
+    <color name="md_secondary">#815512</color>
+    <color name="md_on_secondary">#FFFFFF</color>
+    <color name="md_secondary_container">#FFDCBE</color>
+    <color name="md_on_secondary_container">#2B1700</color>
+
+    <!-- Tertiary (cyan accent) -->
+    <color name="md_tertiary">#006874</color>
+    <color name="md_on_tertiary">#FFFFFF</color>
+    <color name="md_tertiary_container">#97F0FF</color>
+    <color name="md_on_tertiary_container">#001F24</color>
+
+    <!-- Error -->
+    <color name="md_error">#BA1A1A</color>
+    <color name="md_on_error">#FFFFFF</color>
+    <color name="md_error_container">#FFDAD6</color>
+    <color name="md_on_error_container">#410002</color>
+
+    <!-- Background / surfaces -->
+    <color name="md_background">#FAFDFB</color>
+    <color name="md_on_background">#191C1B</color>
+    <color name="md_surface">#FAFDFB</color>
+    <color name="md_on_surface">#191C1B</color>
+    <color name="md_surface_variant">#DBE5E0</color>
+    <color name="md_on_surface_variant">#3F4945</color>
+    <color name="md_surface_inverse">#2D3130</color>
+    <color name="md_on_surface_inverse">#EFF1EF</color>
+
+    <!-- Outline -->
+    <color name="md_outline">#6F7976</color>
+    <color name="md_outline_variant">#BFC9C5</color>
+
+    <!-- Lecture pipeline status colors (used by status chips later) -->
+    <color name="status_recording">#E53935</color>
+    <color name="status_processing">#F4A261</color>
+    <color name="status_ready">#008F7A</color>
+    <color name="status_failed">#BA1A1A</color>
 </resources>

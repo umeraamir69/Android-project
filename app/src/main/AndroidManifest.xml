@@ -20,6 +20,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity
+            android:name=".ThemeShowcaseActivity"
+            android:exported="false"
+            android:label="@string/showcase_title"
+            android:parentActivityName=".MainActivity" />
     </application>
 
 </manifest>
