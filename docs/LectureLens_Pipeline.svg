@@ -1,0 +1,112 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 560" font-family="-apple-system, Segoe UI, Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="parr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#334155"/>
+    </marker>
+    <linearGradient id="g1" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#fee2e2"/><stop offset="1" stop-color="#fecaca"/></linearGradient>
+    <linearGradient id="g2" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#ffedd5"/><stop offset="1" stop-color="#fed7aa"/></linearGradient>
+    <linearGradient id="g3" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#fef9c3"/><stop offset="1" stop-color="#fde68a"/></linearGradient>
+    <linearGradient id="g4" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#dcfce7"/><stop offset="1" stop-color="#bbf7d0"/></linearGradient>
+    <linearGradient id="g5" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#dbeafe"/><stop offset="1" stop-color="#bfdbfe"/></linearGradient>
+  </defs>
+
+  <text x="550" y="30" text-anchor="middle" font-size="22" font-weight="700" fill="#0f172a">LectureLens — Audio Processing Pipeline</text>
+  <text x="550" y="52" text-anchor="middle" font-size="13" fill="#475569">Hierarchical (map-reduce) summarization · runs as a chain of WorkManager workers</text>
+
+  <!-- Stage 1: Capture -->
+  <rect x="40" y="90" width="180" height="120" rx="10" fill="url(#g1)" stroke="#dc2626"/>
+  <text x="130" y="115" text-anchor="middle" font-size="13" font-weight="700" fill="#7f1d1d">1 · Capture</text>
+  <text x="130" y="138" text-anchor="middle" font-size="11" fill="#7f1d1d">MediaRecorder</text>
+  <text x="130" y="156" text-anchor="middle" font-size="11" fill="#7f1d1d">or file import</text>
+  <text x="130" y="180" text-anchor="middle" font-size="10" fill="#7f1d1d">→ .m4a in app storage</text>
+  <text x="130" y="196" text-anchor="middle" font-size="10" fill="#7f1d1d">status = RECORDED</text>
+
+  <!-- Stage 2: Chunking -->
+  <rect x="250" y="90" width="180" height="120" rx="10" fill="url(#g2)" stroke="#ea580c"/>
+  <text x="340" y="115" text-anchor="middle" font-size="13" font-weight="700" fill="#7c2d12">2 · Upload to GCS</text>
+  <text x="340" y="138" text-anchor="middle" font-size="11" fill="#7c2d12">stage FLAC in private</text>
+  <text x="340" y="156" text-anchor="middle" font-size="11" fill="#7c2d12">Cloud Storage bucket</text>
+  <text x="340" y="180" text-anchor="middle" font-size="10" fill="#7c2d12">required for long audio</text>
+  <text x="340" y="196" text-anchor="middle" font-size="10" fill="#7c2d12">(longRunningRecognize URI)</text>
+
+  <!-- Stage 3: Transcription -->
+  <rect x="460" y="90" width="180" height="120" rx="10" fill="url(#g3)" stroke="#ca8a04"/>
+  <text x="550" y="115" text-anchor="middle" font-size="13" font-weight="700" fill="#713f12">3 · Transcription</text>
+  <text x="550" y="138" text-anchor="middle" font-size="11" fill="#713f12">Google Cloud STT</text>
+  <text x="550" y="156" text-anchor="middle" font-size="11" fill="#713f12">longRunningRecognize</text>
+  <text x="550" y="180" text-anchor="middle" font-size="10" fill="#713f12">timestamps + diarization</text>
+  <text x="550" y="196" text-anchor="middle" font-size="10" fill="#713f12">persisted to Room</text>
+
+  <!-- Stage 4: Map-reduce (block) -->
+  <rect x="670" y="90" width="270" height="320" rx="10" fill="#fafafa" stroke="#16a34a" stroke-width="1.5"/>
+  <text x="805" y="115" text-anchor="middle" font-size="13" font-weight="700" fill="#14532d">4 · Hierarchical Summarization</text>
+
+  <!-- Map -->
+  <rect x="685" y="130" width="240" height="70" rx="8" fill="url(#g4)" stroke="#16a34a"/>
+  <text x="805" y="152" text-anchor="middle" font-size="12" font-weight="700" fill="#14532d">Map · per-chunk summary</text>
+  <text x="805" y="172" text-anchor="middle" font-size="10" fill="#14532d">each chunk → Gemini 1.5-flash in parallel</text>
+  <text x="805" y="188" text-anchor="middle" font-size="10" fill="#14532d">temperature 0.2, JSON schema enforced</text>
+
+  <!-- Reduce -->
+  <rect x="685" y="210" width="240" height="70" rx="8" fill="url(#g4)" stroke="#16a34a"/>
+  <text x="805" y="232" text-anchor="middle" font-size="12" font-weight="700" fill="#14532d">Reduce · combine</text>
+  <text x="805" y="252" text-anchor="middle" font-size="10" fill="#14532d">Gemini 1.5-pro merges partial summaries</text>
+  <text x="805" y="268" text-anchor="middle" font-size="10" fill="#14532d">recursive if still too long</text>
+
+  <!-- Extract -->
+  <rect x="685" y="290" width="240" height="70" rx="8" fill="url(#g4)" stroke="#16a34a"/>
+  <text x="805" y="312" text-anchor="middle" font-size="12" font-weight="700" fill="#14532d">Extract · key terms + actions</text>
+  <text x="805" y="332" text-anchor="middle" font-size="10" fill="#14532d">separate pass over per-chunk summaries</text>
+  <text x="805" y="348" text-anchor="middle" font-size="10" fill="#14532d">prevents loss in final compression</text>
+
+  <text x="805" y="386" text-anchor="middle" font-size="10" fill="#475569">Each model call is small &amp; retryable; partial results saved if a step fails</text>
+
+  <!-- Stage 5: Indexing -->
+  <rect x="40" y="270" width="180" height="120" rx="10" fill="url(#g5)" stroke="#2563eb"/>
+  <text x="130" y="295" text-anchor="middle" font-size="13" font-weight="700" fill="#1e3a8a">5 · Indexing</text>
+  <text x="130" y="318" text-anchor="middle" font-size="11" fill="#1e3a8a">SQLite FTS4</text>
+  <text x="130" y="336" text-anchor="middle" font-size="11" fill="#1e3a8a">(keyword search)</text>
+  <text x="130" y="360" text-anchor="middle" font-size="10" fill="#1e3a8a">+ Gemini embeddings*</text>
+  <text x="130" y="376" text-anchor="middle" font-size="10" fill="#1e3a8a">text-embedding-004 (stretch)</text>
+
+  <!-- Stage 6: Notify UI -->
+  <rect x="250" y="270" width="180" height="120" rx="10" fill="url(#g5)" stroke="#2563eb"/>
+  <text x="340" y="295" text-anchor="middle" font-size="13" font-weight="700" fill="#1e3a8a">6 · Ready</text>
+  <text x="340" y="318" text-anchor="middle" font-size="11" fill="#1e3a8a">status = READY</text>
+  <text x="340" y="336" text-anchor="middle" font-size="11" fill="#1e3a8a">WorkInfo updates</text>
+  <text x="340" y="360" text-anchor="middle" font-size="10" fill="#1e3a8a">library badge → green</text>
+  <text x="340" y="376" text-anchor="middle" font-size="10" fill="#1e3a8a">lecture opens with notes</text>
+
+  <!-- Storage box -->
+  <rect x="460" y="270" width="180" height="120" rx="10" fill="#f1f5f9" stroke="#64748b"/>
+  <text x="550" y="295" text-anchor="middle" font-size="13" font-weight="700" fill="#334155">Local Storage</text>
+  <text x="550" y="318" text-anchor="middle" font-size="11" fill="#334155">Room DB</text>
+  <text x="550" y="336" text-anchor="middle" font-size="10" fill="#334155">lectures · transcripts</text>
+  <text x="550" y="352" text-anchor="middle" font-size="10" fill="#334155">notes · fts · embeddings*</text>
+  <text x="550" y="376" text-anchor="middle" font-size="10" fill="#334155">+ audio files (app-private)</text>
+
+  <!-- Arrows along the top row -->
+  <line x1="220" y1="150" x2="248" y2="150" stroke="#334155" stroke-width="1.8" marker-end="url(#parr)"/>
+  <line x1="430" y1="150" x2="458" y2="150" stroke="#334155" stroke-width="1.8" marker-end="url(#parr)"/>
+  <line x1="640" y1="150" x2="668" y2="150" stroke="#334155" stroke-width="1.8" marker-end="url(#parr)"/>
+
+  <!-- Down from summarization to storage / indexing -->
+  <line x1="805" y1="410" x2="805" y2="440" stroke="#334155" stroke-width="1.8"/>
+  <line x1="805" y1="440" x2="550" y2="440" stroke="#334155" stroke-width="1.8"/>
+  <line x1="550" y1="440" x2="550" y2="392" stroke="#334155" stroke-width="1.8" marker-end="url(#parr)"/>
+  <line x1="550" y1="440" x2="130" y2="440" stroke="#334155" stroke-width="1.8"/>
+  <line x1="130" y1="440" x2="130" y2="392" stroke="#334155" stroke-width="1.8" marker-end="url(#parr)"/>
+
+  <!-- Indexing -> Ready -->
+  <line x1="220" y1="330" x2="248" y2="330" stroke="#334155" stroke-width="1.8" marker-end="url(#parr)"/>
+  <!-- Ready writes to storage -->
+  <line x1="430" y1="330" x2="458" y2="330" stroke="#334155" stroke-width="1.8" marker-end="url(#parr)"/>
+
+  <!-- Annotations / footer -->
+  <rect x="40" y="470" width="900" height="70" rx="10" fill="#f8fafc" stroke="#cbd5e1"/>
+  <text x="60" y="492" font-size="12" font-weight="700" fill="#334155">MVP: cloud-only.  Phase 2 (if time permits): on-device STT + LLM fallback for offline processing.</text>
+  <text x="60" y="510" font-size="11" fill="#475569">A 90-minute lecture can produce 10k+ words — too long for one model request. Map-reduce keeps each Gemini call small, makes cost predictable,</text>
+  <text x="60" y="525" font-size="11" fill="#475569">lets stages retry independently, and saves partial results if any single call fails. Network-dependent stages pause cleanly when offline.</text>
+
+  <text x="55" y="555" font-size="10" fill="#64748b">* stretch / future feature</text>
+</svg>
