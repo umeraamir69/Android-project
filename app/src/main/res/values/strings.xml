@@ -56,4 +56,50 @@
 
     <!-- FAB -->
     <string name="showcase_fab_record">Record</string>
+
+    <!-- Container-color cards -->
+    <string name="showcase_section_container_cards">Container cards</string>
+    <string name="showcase_card_primary_title">Primary container</string>
+    <string name="showcase_card_primary_body">Cards filled with colorPrimaryContainer use colorOnPrimaryContainer for text. Embedded actions use the primary role.</string>
+    <string name="showcase_btn_primary_action">Primary action</string>
+    <string name="showcase_card_secondary_title">Secondary container</string>
+    <string name="showcase_card_secondary_body">Secondary containers are quieter — good for supporting info, metadata, or grouped settings.</string>
+    <string name="showcase_btn_secondary_action">Secondary action</string>
+    <string name="showcase_card_tertiary_title">Tertiary container</string>
+    <string name="showcase_card_tertiary_body">Tertiary highlights status, accents, or callouts that need to stand apart from primary content.</string>
+    <string name="showcase_btn_tertiary_action">Tertiary action</string>
+
+    <!-- Extra inputs -->
+    <string name="showcase_input_filled_hint">Email</string>
+    <string name="showcase_input_helper">Plain text, max 80 characters</string>
+    <string name="showcase_input_error_hint">API key</string>
+    <string name="showcase_input_error_value">sk-invalid</string>
+    <string name="showcase_input_error_text">Key format looks wrong</string>
+    <string name="showcase_checkbox_unchecked">Email me when ready</string>
+
+    <!-- Feedback (snackbar + dialog) -->
+    <string name="showcase_section_feedback">Snackbars &amp; dialogs</string>
+    <string name="showcase_btn_show_snackbar">Show snackbar</string>
+    <string name="showcase_btn_show_snackbar_action">Show snackbar with action</string>
+    <string name="showcase_btn_show_dialog">Show dialog</string>
+    <string name="showcase_btn_show_dialog_destructive">Show destructive dialog</string>
+    <string name="showcase_snackbar_message">Lecture saved to library</string>
+    <string name="showcase_snackbar_action_message">Upload failed</string>
+    <string name="showcase_snackbar_action">Retry</string>
+    <string name="showcase_snackbar_retrying">Retrying upload…</string>
+    <string name="showcase_dialog_title">Discard recording?</string>
+    <string name="showcase_dialog_message">The current take hasn\'t been saved. Discarding will throw away the audio and any partial transcript.</string>
+    <string name="showcase_dialog_positive">Keep recording</string>
+    <string name="showcase_dialog_negative">Discard</string>
+    <string name="showcase_dialog_destructive_title">Delete lecture?</string>
+    <string name="showcase_dialog_destructive_message">This permanently deletes the audio, transcript, and summary for \"Week 6\". This cannot be undone.</string>
+    <string name="showcase_dialog_destructive_positive">Delete</string>
+    <string name="showcase_dialog_destructive_negative">Cancel</string>
+
+    <!-- Progress -->
+    <string name="showcase_progress_linear_determinate">Linear · determinate (65%%)</string>
+    <string name="showcase_progress_linear_indeterminate">Linear · indeterminate</string>
+    <string name="showcase_progress_circular_indeterminate">Indeterminate</string>
+    <string name="showcase_progress_circular_determinate">Determinate</string>
+    <string name="showcase_progress_circular_small">Small</string>
 </resources>

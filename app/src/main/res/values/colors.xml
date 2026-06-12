@@ -6,32 +6,34 @@
 
     <!--
         LectureLens — Material 3 light color tokens.
-        Seed: #008F7A (teal). Secondary: #F4A261 (warm amber). Tertiary: #006874 (cyan).
-        Token names mirror the M3 spec so themes.xml can bind them by role.
+        Seed: #386A20 (forest green). Tonally-coherent analogous palette:
+        - Primary: forest green   (focus, brand)
+        - Secondary: sage neutral (chrome, supporting)
+        - Tertiary: muted teal    (accent, status)
         Dark equivalents live in values-night/colors.xml.
     -->
 
     <!-- Brand seed (for splash / non-themed surfaces) -->
-    <color name="brand_teal">#008F7A</color>
+    <color name="brand_teal">#1F4D00</color>
 
-    <!-- Primary (teal) -->
-    <color name="md_primary">#006B5C</color>
+    <!-- Primary (deep forest green) -->
+    <color name="md_primary">#1F4D00</color>
     <color name="md_on_primary">#FFFFFF</color>
-    <color name="md_primary_container">#76F8DC</color>
-    <color name="md_on_primary_container">#00201A</color>
-    <color name="md_primary_inverse">#57DBC0</color>
+    <color name="md_primary_container">#9BD67D</color>
+    <color name="md_on_primary_container">#051F00</color>
+    <color name="md_primary_inverse">#8FCB6A</color>
 
-    <!-- Secondary (warm amber) -->
-    <color name="md_secondary">#815512</color>
+    <!-- Secondary (sage neutral) -->
+    <color name="md_secondary">#56624B</color>
     <color name="md_on_secondary">#FFFFFF</color>
-    <color name="md_secondary_container">#FFDCBE</color>
-    <color name="md_on_secondary_container">#2B1700</color>
+    <color name="md_secondary_container">#DAE7CA</color>
+    <color name="md_on_secondary_container">#141E0C</color>
 
-    <!-- Tertiary (cyan accent) -->
-    <color name="md_tertiary">#006874</color>
+    <!-- Tertiary (sage-teal, green-leaning to harmonize with primary) -->
+    <color name="md_tertiary">#2E5D4D</color>
     <color name="md_on_tertiary">#FFFFFF</color>
-    <color name="md_tertiary_container">#97F0FF</color>
-    <color name="md_on_tertiary_container">#001F24</color>
+    <color name="md_tertiary_container">#B0ECCF</color>
+    <color name="md_on_tertiary_container">#00210F</color>
 
     <!-- Error -->
     <color name="md_error">#BA1A1A</color>
@@ -40,22 +42,22 @@
     <color name="md_on_error_container">#410002</color>
 
     <!-- Background / surfaces -->
-    <color name="md_background">#FAFDFB</color>
-    <color name="md_on_background">#191C1B</color>
-    <color name="md_surface">#FAFDFB</color>
-    <color name="md_on_surface">#191C1B</color>
-    <color name="md_surface_variant">#DBE5E0</color>
-    <color name="md_on_surface_variant">#3F4945</color>
-    <color name="md_surface_inverse">#2D3130</color>
-    <color name="md_on_surface_inverse">#EFF1EF</color>
+    <color name="md_background">#FCFDF6</color>
+    <color name="md_on_background">#1A1C18</color>
+    <color name="md_surface">#FCFDF6</color>
+    <color name="md_on_surface">#1A1C18</color>
+    <color name="md_surface_variant">#DFE4D7</color>
+    <color name="md_on_surface_variant">#43483E</color>
+    <color name="md_surface_inverse">#2F312D</color>
+    <color name="md_on_surface_inverse">#F0F1EA</color>
 
     <!-- Outline -->
-    <color name="md_outline">#6F7976</color>
-    <color name="md_outline_variant">#BFC9C5</color>
+    <color name="md_outline">#73796D</color>
+    <color name="md_outline_variant">#C3C8BB</color>
 
     <!-- Lecture pipeline status colors (used by status chips later) -->
-    <color name="status_recording">#E53935</color>
-    <color name="status_processing">#F4A261</color>
-    <color name="status_ready">#008F7A</color>
+    <color name="status_recording">#BA1A1A</color>
+    <color name="status_processing">#2E5D4D</color>
+    <color name="status_ready">#1F4D00</color>
     <color name="status_failed">#BA1A1A</color>
 </resources>

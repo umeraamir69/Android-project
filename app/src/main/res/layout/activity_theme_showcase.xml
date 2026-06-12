@@ -329,6 +329,131 @@
                     android:text="@string/showcase_card_outlined_body" />
             </com.google.android.material.card.MaterialCardView>
 
+            <!-- ============ CONTAINER-COLOR CARDS ============ -->
+            <TextView
+                style="?attr/textAppearanceTitleMedium"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingTop="24dp"
+                android:paddingBottom="8dp"
+                android:text="@string/showcase_section_container_cards" />
+
+            <!-- Primary container card -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                app:cardBackgroundColor="?attr/colorPrimaryContainer"
+                app:cardElevation="0dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        style="?attr/textAppearanceTitleMedium"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/showcase_card_primary_title"
+                        android:textColor="?attr/colorOnPrimaryContainer" />
+
+                    <TextView
+                        style="?attr/textAppearanceBodyMedium"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="@string/showcase_card_primary_body"
+                        android:textColor="?attr/colorOnPrimaryContainer" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:backgroundTint="?attr/colorPrimary"
+                        android:text="@string/showcase_btn_primary_action"
+                        android:textColor="?attr/colorOnPrimary" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Secondary container card -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                app:cardBackgroundColor="?attr/colorSecondaryContainer"
+                app:cardElevation="0dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        style="?attr/textAppearanceTitleMedium"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/showcase_card_secondary_title"
+                        android:textColor="?attr/colorOnSecondaryContainer" />
+
+                    <TextView
+                        style="?attr/textAppearanceBodyMedium"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="@string/showcase_card_secondary_body"
+                        android:textColor="?attr/colorOnSecondaryContainer" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:backgroundTint="?attr/colorSecondary"
+                        android:text="@string/showcase_btn_secondary_action"
+                        android:textColor="?attr/colorOnSecondary" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Tertiary container card -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardBackgroundColor="?attr/colorTertiaryContainer"
+                app:cardElevation="0dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        style="?attr/textAppearanceTitleMedium"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/showcase_card_tertiary_title"
+                        android:textColor="?attr/colorOnTertiaryContainer" />
+
+                    <TextView
+                        style="?attr/textAppearanceBodyMedium"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="@string/showcase_card_tertiary_body"
+                        android:textColor="?attr/colorOnTertiaryContainer" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:backgroundTint="?attr/colorTertiary"
+                        android:text="@string/showcase_btn_tertiary_action"
+                        android:textColor="?attr/colorOnTertiary" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
             <!-- ============ INPUTS ============ -->
             <TextView
                 style="?attr/textAppearanceTitleMedium"
@@ -338,16 +463,51 @@
                 android:paddingBottom="8dp"
                 android:text="@string/showcase_section_inputs" />
 
+            <!-- Outlined text field with helper text -->
             <com.google.android.material.textfield.TextInputLayout
                 style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="@string/showcase_input_hint">
+                android:hint="@string/showcase_input_hint"
+                app:helperText="@string/showcase_input_helper"
+                app:helperTextEnabled="true">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:inputType="text" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <!-- Filled text field -->
+            <com.google.android.material.textfield.TextInputLayout
+                style="@style/Widget.Material3.TextInputLayout.FilledBox"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:hint="@string/showcase_input_filled_hint"
+                app:boxBackgroundColor="?attr/colorSecondaryContainer">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="textEmailAddress" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <!-- Outlined text field in error state -->
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/input_error"
+                style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:hint="@string/showcase_input_error_hint"
+                app:errorEnabled="true">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="text"
+                    android:text="@string/showcase_input_error_value" />
             </com.google.android.material.textfield.TextInputLayout>
 
             <com.google.android.material.materialswitch.MaterialSwitch
@@ -363,6 +523,52 @@
                 android:checked="true"
                 android:text="@string/showcase_checkbox_label" />
 
+            <com.google.android.material.checkbox.MaterialCheckBox
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checked="false"
+                android:text="@string/showcase_checkbox_unchecked" />
+
+            <!-- ============ DIALOG / SNACKBAR TRIGGERS ============ -->
+            <TextView
+                style="?attr/textAppearanceTitleMedium"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingTop="24dp"
+                android:paddingBottom="8dp"
+                android:text="@string/showcase_section_feedback" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_show_snackbar"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/showcase_btn_show_snackbar" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_show_snackbar_action"
+                style="@style/Widget.Material3.Button.TonalButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/showcase_btn_show_snackbar_action" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_show_dialog"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/showcase_btn_show_dialog" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_show_dialog_destructive"
+                style="@style/Widget.Material3.Button.TextButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="@string/showcase_btn_show_dialog_destructive"
+                android:textColor="?attr/colorError" />
+
             <!-- ============ PROGRESS ============ -->
             <TextView
                 style="?attr/textAppearanceTitleMedium"
@@ -372,13 +578,115 @@
                 android:paddingBottom="8dp"
                 android:text="@string/showcase_section_progress" />
 
+            <!-- Linear determinate -->
+            <TextView
+                style="?attr/textAppearanceLabelMedium"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/showcase_progress_linear_determinate" />
+
             <com.google.android.material.progressindicator.LinearProgressIndicator
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
                 android:indeterminate="false"
                 android:progress="65"
                 app:indicatorColor="?attr/colorPrimary"
                 app:trackColor="?attr/colorPrimaryContainer" />
+
+            <!-- Linear indeterminate -->
+            <TextView
+                style="?attr/textAppearanceLabelMedium"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:text="@string/showcase_progress_linear_indeterminate" />
+
+            <com.google.android.material.progressindicator.LinearProgressIndicator
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:indeterminate="true"
+                app:indicatorColor="?attr/colorTertiary"
+                app:trackColor="?attr/colorTertiaryContainer" />
+
+            <!-- Circular spinners side-by-side -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
+
+                    <com.google.android.material.progressindicator.CircularProgressIndicator
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:indeterminate="true"
+                        app:indicatorColor="?attr/colorPrimary"
+                        app:trackColor="?attr/colorPrimaryContainer" />
+
+                    <TextView
+                        style="?attr/textAppearanceLabelSmall"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:paddingTop="6dp"
+                        android:text="@string/showcase_progress_circular_indeterminate" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
+
+                    <com.google.android.material.progressindicator.CircularProgressIndicator
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:indeterminate="false"
+                        android:progress="70"
+                        app:indicatorColor="?attr/colorTertiary"
+                        app:trackColor="?attr/colorTertiaryContainer"
+                        app:trackThickness="6dp" />
+
+                    <TextView
+                        style="?attr/textAppearanceLabelSmall"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:paddingTop="6dp"
+                        android:text="@string/showcase_progress_circular_determinate" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
+
+                    <com.google.android.material.progressindicator.CircularProgressIndicator
+                        style="@style/Widget.Material3.CircularProgressIndicator.Small"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:indeterminate="true"
+                        app:indicatorColor="?attr/colorSecondary"
+                        app:trackColor="?attr/colorSecondaryContainer" />
+
+                    <TextView
+                        style="?attr/textAppearanceLabelSmall"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:paddingTop="6dp"
+                        android:text="@string/showcase_progress_circular_small" />
+                </LinearLayout>
+            </LinearLayout>
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 
