@@ -1,5 +1,6 @@
 package com.example.andoirdproject;
 
+import android.content.Intent;
 import android.os.Bundle;
 
 import androidx.activity.EdgeToEdge;
@@ -20,5 +21,9 @@ public class MainActivity extends AppCompatActivity {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
+
+        // Launch the theme showcase so we can eyeball the M3 palette.
+        findViewById(R.id.open_showcase_btn).setOnClickListener(v ->
+                startActivity(new Intent(this, ThemeShowcaseActivity.class)));
     }
 }

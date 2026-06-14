@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+        LectureLens — Material 3 dark color tokens.
+        Same role names as values/colors.xml; tones inverted per M3 spec
+        (primary becomes tone 80, container becomes tone 30, etc.) so the
+        XML theme can reference one role and Android picks day vs. night.
+    -->
+
+    <!-- Primary (deep forest green) -->
+    <color name="md_primary">#8FCB6A</color>
+    <color name="md_on_primary">#0E2A00</color>
+    <color name="md_primary_container">#163A00</color>
+    <color name="md_on_primary_container">#9BD67D</color>
+    <color name="md_primary_inverse">#1F4D00</color>
+
+    <!-- Secondary (sage neutral) -->
+    <color name="md_secondary">#BECBAF</color>
+    <color name="md_on_secondary">#29331F</color>
+    <color name="md_secondary_container">#3F4A34</color>
+    <color name="md_on_secondary_container">#DAE7CA</color>
+
+    <!-- Tertiary (sage-teal, green-leaning to harmonize with primary) -->
+    <color name="md_tertiary">#94D5B4</color>
+    <color name="md_on_tertiary">#003824</color>
+    <color name="md_tertiary_container">#154535</color>
+    <color name="md_on_tertiary_container">#B0ECCF</color>
+
+    <!-- Error -->
+    <color name="md_error">#FFB4AB</color>
+    <color name="md_on_error">#690005</color>
+    <color name="md_error_container">#93000A</color>
+    <color name="md_on_error_container">#FFDAD6</color>
+
+    <!-- Background / surfaces -->
+    <color name="md_background">#1A1C18</color>
+    <color name="md_on_background">#E2E3DC</color>
+    <color name="md_surface">#1A1C18</color>
+    <color name="md_on_surface">#E2E3DC</color>
+    <color name="md_surface_variant">#43483E</color>
+    <color name="md_on_surface_variant">#C3C8BB</color>
+    <color name="md_surface_inverse">#E2E3DC</color>
+    <color name="md_on_surface_inverse">#2F312D</color>
+
+    <!-- Outline -->
+    <color name="md_outline">#8D9286</color>
+    <color name="md_outline_variant">#43483E</color>
+</resources>
