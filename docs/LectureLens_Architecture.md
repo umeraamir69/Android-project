@@ -17,14 +17,14 @@ LectureLens is an Android application that turns lecture audio into searchable, 
 
 ### 1.1 Architectural Goals
 
-| Goal                 | How the architecture addresses it                                                                                                                       |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Offline review (MVP) | Local Room DB stores transcripts, summaries, and audio paths so reads never require network. New-lecture processing does require network in the MVP.    |
-| Cloud reliability    | Both STT and LLM run on Google's managed services — no on-device model footprint in the MVP.                                                            |
+| Goal | How the architecture addresses it |
+|---|---|
+| Offline review (MVP) | Local Room DB stores transcripts, summaries, and audio paths so reads never require network. New-lecture processing does require network in the MVP. |
+| Cloud reliability | Both STT and LLM run on Google's managed services — no on-device model footprint in the MVP. |
 | Provider flexibility | All STT, LLM, and embedding calls go through repository interfaces, so an on-device or alternate provider can be added later without app-logic changes. |
-| Long-lecture support | Background `WorkManager` jobs run map-reduce summarization in chunks.                                                                                   |
-| Privacy & consent    | Audio leaves the device for cloud processing — the user sees an explicit consent prompt before the first upload and a per-lecture indicator afterward.  |
-| Testability          | Domain layer is pure Java with no Android dependencies; data sources are mockable behind interfaces.                                                    |
+| Long-lecture support | Background `WorkManager` jobs run map-reduce summarization in chunks. |
+| Privacy & consent | Audio leaves the device for cloud processing — the user sees an explicit consent prompt before the first upload and a per-lecture indicator afterward. |
+| Testability | Domain layer is pure Java with no Android dependencies; data sources are mockable behind interfaces. |
 
 ### 1.2 Technology Stack
 
@@ -101,15 +101,15 @@ public class GenerateNotesUseCase {
 
 **Room schema (MVP):**
 
-| Table                    | Key columns                                                      |
-| ------------------------ | ---------------------------------------------------------------- |
-| `courses`                | id, name, color, created_at                                      |
-| `lectures`               | id, course_id (FK), title, date, audio_path, duration_ms, status |
-| `transcripts`            | lecture_id (FK), full_text, language, model_used                 |
-| `transcript_segments`    | id, lecture_id (FK), start_ms, end_ms, text                      |
-| `notes`                  | lecture_id (FK), summary, key_terms (JSON), action_items (JSON)  |
-| `transcripts_fts`        | virtual FTS4 table mirroring transcript text for search          |
-| `embeddings` _(stretch)_ | chunk_id, lecture_id, vector (BLOB), text                        |
+| Table | Key columns |
+|---|---|
+| `courses` | id, name, color, created_at |
+| `lectures` | id, course_id (FK), title, date, audio_path, duration_ms, status |
+| `transcripts` | lecture_id (FK), full_text, language, model_used |
+| `transcript_segments` | id, lecture_id (FK), start_ms, end_ms, text |
+| `notes` | lecture_id (FK), summary, key_terms (JSON), action_items (JSON) |
+| `transcripts_fts` | virtual FTS4 table mirroring transcript text for search |
+| `embeddings` *(stretch)* | chunk_id, lecture_id, vector (BLOB), text |
 
 `status` on `lectures` is an enum (`RECORDED`, `TRANSCRIBING`, `TRANSCRIBED`, `SUMMARIZING`, `READY`, `FAILED`) so the UI can show per-lecture progress on the library screen.
 
@@ -143,11 +143,11 @@ Each worker reports progress via `setProgressAsync()`, which the ViewModel obser
 
 ### 3.5 External Integrations
 
-| Service                                                                              | Purpose                                                                | Phase 2 fallback (time permitting)                               |
-| ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| Google Cloud Speech-to-Text                                                          | Speech-to-text (`longRunningRecognize`, auto-punctuation, diarization) | Android `SpeechRecognizer` / Vosk (on-device)                    |
-| Google Gemini API (`gemini-1.5-flash` for chunks, `gemini-1.5-pro` for final reduce) | Summaries, key terms, action items, RAG answers                        | On-device small LLM (e.g., Gemma 2B via MediaPipe LLM Inference) |
-| Gemini Embeddings API (`text-embedding-004`) _(stretch)_                             | Vector embeddings for semantic search                                  | On-device sentence-transformer (e.g., MiniLM via TFLite)         |
+| Service | Purpose | Phase 2 fallback (time permitting) |
+|---|---|---|
+| Google Cloud Speech-to-Text | Speech-to-text (`longRunningRecognize`, auto-punctuation, diarization) | Android `SpeechRecognizer` / Vosk (on-device) |
+| Google Gemini API (`gemini-1.5-flash` for chunks, `gemini-1.5-pro` for final reduce) | Summaries, key terms, action items, RAG answers | On-device small LLM (e.g., Gemma 2B via MediaPipe LLM Inference) |
+| Gemini Embeddings API (`text-embedding-004`) *(stretch)* | Vector embeddings for semantic search | On-device sentence-transformer (e.g., MiniLM via TFLite) |
 
 The "Phase 2 fallback" column is what the repository interfaces enable later — none of it ships in the MVP. The MVP requires network connectivity for any new lecture to be processed.
 
@@ -208,11 +208,11 @@ The `:domain` module is plain Java with no Android dependencies, which is what m
 
 ## 7. Roadmap Mapping to Architecture
 
-| Phase                       | Features                                                                                                       | Architectural surface                                                                                               |
-| --------------------------- | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| MVP                         | Record/import, cloud transcription (Google STT), cloud notes (Gemini), library, FTS search, export, consent UX | Presentation + Domain + Data + Processing — all generation cloud-only                                               |
-| Phase 2 _(time permitting)_ | On-device STT fallback, on-device LLM fallback, long-lecture map-reduce refinements                            | `TranscriptionRouter` + on-device implementations of `TranscriptionRepository` and `LlmRepository`, settings toggle |
-| Stretch                     | Semantic search, RAG Q&A, cloud sync                                                                           | `:data:embeddings` module, `AskQuestionUseCase`, optional sync service                                              |
+| Phase | Features | Architectural surface |
+|---|---|---|
+| MVP | Record/import, cloud transcription (Google STT), cloud notes (Gemini), library, FTS search, export, consent UX | Presentation + Domain + Data + Processing — all generation cloud-only |
+| Phase 2 *(time permitting)* | On-device STT fallback, on-device LLM fallback, long-lecture map-reduce refinements | `TranscriptionRouter` + on-device implementations of `TranscriptionRepository` and `LlmRepository`, settings toggle |
+| Stretch | Semantic search, RAG Q&A, cloud sync | `:data:embeddings` module, `AskQuestionUseCase`, optional sync service |
 
 The Phase 2 work is purely additive: the MVP ships fully cloud-based, and on-device implementations slot in behind the existing repository interfaces with no changes to ViewModels or use cases. Cloud sync, if added, plugs in the same way.
 
@@ -226,26 +226,26 @@ The biggest risks called out in the proposal — cost overruns, privacy concerns
 
 ## 9. AI Usage
 
-This section documents how AI is used both _inside_ LectureLens and _during_ its development, so reviewers can evaluate it against course academic-integrity policy and so future maintainers understand what is generated vs. authored.
+This section documents how AI is used both *inside* LectureLens and *during* its development, so reviewers can evaluate it against course academic-integrity policy and so future maintainers understand what is generated vs. authored.
 
 ### 9.1 AI Used Inside the Product
 
 LectureLens is, by design, an AI-powered application. Two Google services do the substantive work:
 
-| Capability                     | Service                     | Model                                                            | Where it appears                              |
-| ------------------------------ | --------------------------- | ---------------------------------------------------------------- | --------------------------------------------- |
-| Speech-to-text                 | Google Cloud Speech-to-Text | `latest_long` recognizer (auto-punctuation, speaker diarization) | `TranscriptionWorker` (§3.4)                  |
-| Per-chunk summary (map)        | Google Gemini API           | `gemini-1.5-flash`                                               | `SummarizationWorker`, map stage (§3.4)       |
-| Final summary (reduce)         | Google Gemini API           | `gemini-1.5-pro`                                                 | `SummarizationWorker`, reduce stage (§3.4)    |
-| Key terms + action items       | Google Gemini API           | `gemini-1.5-flash`                                               | `SummarizationWorker`, extraction pass (§3.4) |
-| Question answering _(stretch)_ | Google Gemini API           | `gemini-1.5-pro`                                                 | `AskQuestionUseCase` (§4.3)                   |
-| Embeddings _(stretch)_         | Google Gemini API           | `text-embedding-004`                                             | `EmbeddingRepository` (§4.3)                  |
+| Capability | Service | Model | Where it appears |
+|---|---|---|---|
+| Speech-to-text | Google Cloud Speech-to-Text | `latest_long` recognizer (auto-punctuation, speaker diarization) | `TranscriptionWorker` (§3.4) |
+| Per-chunk summary (map) | Google Gemini API | `gemini-1.5-flash` | `SummarizationWorker`, map stage (§3.4) |
+| Final summary (reduce) | Google Gemini API | `gemini-1.5-pro` | `SummarizationWorker`, reduce stage (§3.4) |
+| Key terms + action items | Google Gemini API | `gemini-1.5-flash` | `SummarizationWorker`, extraction pass (§3.4) |
+| Question answering *(stretch)* | Google Gemini API | `gemini-1.5-pro` | `AskQuestionUseCase` (§4.3) |
+| Embeddings *(stretch)* | Google Gemini API | `text-embedding-004` | `EmbeddingRepository` (§4.3) |
 
 **Guardrails on AI output.** Generated content is never presented as ground truth from the lecturer. Specifically:
 
 - Every summary is rendered alongside the source transcript so the user can verify any claim against the recorded audio.
 - RAG answers (stretch) always include lecture-name + timestamp citations; tapping a citation opens the relevant transcript section. Low-confidence retrievals show "I couldn't find this in your lectures" instead of guessing.
-- The Gemini system prompt fixes the role as a _study-notes assistant_ and instructs the model to not invent content beyond the supplied transcript. Temperature is set to 0.2 for consistency.
+- The Gemini system prompt fixes the role as a *study-notes assistant* and instructs the model to not invent content beyond the supplied transcript. Temperature is set to 0.2 for consistency.
 - JSON-schema response mode enforces the output shape, so malformed responses fail fast rather than producing partial UI rendering.
 
 **User consent and data handling.** Audio leaves the device only after the user accepts an explicit consent prompt. The Google Cloud project is configured with the model-training opt-out enabled on both Speech-to-Text and Gemini, and audio objects in the staging GCS bucket are deleted by `TranscriptionWorker` immediately after the transcript is persisted. A per-lecture indicator in the UI shows that the audio was processed in the cloud.
@@ -279,8 +279,22 @@ Generative AI assistants (specifically, Anthropic's Claude) were used by the tea
 - AI-suggested architectural claims (e.g., "Cloud Speech-to-Text supports up to ~8 hours via `longRunningRecognize`") are cross-checked against Google's official documentation.
 - Test code is written by the team, not generated, so the test suite acts as an independent check on the implementation.
 
-**What AI was _not_ used for.**
+**What AI was *not* used for.**
 
 - Generating final production code without human review.
 - Answering questions on behalf of users inside the app (the only model-facing conversations are summarization and the stretch RAG Q&A — both grounded in the user's own lectures, not in arbitrary world knowledge).
 - Grading, evaluation, or any other use that would conflict with course policy.
+
+If course policy requires per-deliverable AI-use statements, this section should be cited and a short addendum added to each deliverable indicating which subset of the practices above applied.
+
+---
+
+## 10. Project Links
+
+| Resource | URL |
+|---|---|
+| Repository (root) | [github.com/umeraamir69/Android-project](https://github.com/umeraamir69/Android-project) |
+| Design doc — `main` branch | [LectureLens_Architecture.md @ main](https://github.com/umeraamir69/Android-project/blob/main/docs/LectureLens_Architecture.md) |
+| Design doc — `feat/pure-java-conversion` branch (Kotlin removed) | [LectureLens_Architecture.md @ feat/pure-java-conversion](https://github.com/umeraamir69/Android-project/blob/feat/pure-java-conversion/docs/LectureLens_Architecture.md) |
+
+> **Note for the instructor — repository access.** The repository is currently private. To grant access for grading and review, please share your GitHub username with the team and we will add you as a collaborator.
