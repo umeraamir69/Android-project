@@ -1,0 +1,62 @@
+@startuml RagQaSequence
+' Classic UML sequence diagram — Ask a question (stretch · RAG)
+
+skinparam style strictuml
+skinparam sequenceMessageAlign center
+skinparam sequenceArrowThickness 1.2
+hide footbox
+
+title Ask a Question About My Lectures (RAG · stretch)
+
+actor Student
+
+actor "<<system>>\nGemini Embeddings" as EMB
+actor "<<system>>\nGemini" as GEM
+
+create "<u>askScreen : AskScreen</u>" as AS
+Student -> AS : new
+activate AS
+
+create "<u> : AskQuestionController</u>" as AC
+AS -> AC : new
+activate AC
+
+Student -> AS : ask(question)
+AS -> AC : ask(question)
+
+== Retrieve ==
+AC -> EMB : embed(question)
+EMB --> AC : queryVector
+
+create "<u> : VectorIndex</u>" as VI
+AC -> VI : new
+activate VI
+
+AC -> VI : topK(queryVector, k=6)
+VI -> VI : cosineSimilarity()
+VI --> AC : chunks
+deactivate VI
+destroy VI
+
+alt [confidence below threshold]
+  AC --> AS : "no context found"
+  AS --> Student : show fallback message
+else [confidence OK]
+
+  == Generate ==
+  AC -> AC : buildPrompt(question, chunks)
+  AC -> GEM : generate(prompt)
+  GEM --> AC : answer, citations
+
+  AC --> AS : answer, citations
+  AS --> Student : render answer
+
+  Student -> AS : tapCitation(lectureId, ts)
+
+  create "<u>lectureView : LectureViewScreen</u>" as LV
+  AS -> LV : new(lectureId, ts)
+  activate LV
+  LV --> Student : transcript at source
+end
+
+@enduml

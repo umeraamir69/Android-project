@@ -1,0 +1,70 @@
+@startuml AudioRecordingState
+' UML State Machine — Audio recording screen (MediaRecorder lifecycle)
+' Owned by RecordLectureUseCase / UploadViewModel
+
+title Audio Recording State (Upload Screen)
+
+skinparam state {
+  BackgroundColor<<active>>   #DBEAFE
+  BackgroundColor<<terminal>> #DCFCE7
+  BackgroundColor<<error>>    #FEE2E2
+}
+
+[*] --> Idle
+
+state Idle {
+  Idle : Mic permission not yet checked
+}
+
+state CheckingPermission
+state PermissionDenied <<error>>
+
+state Recording <<active>> {
+  Recording : MediaRecorder.start()
+  Recording : timer running
+}
+
+state Paused {
+  Paused : MediaRecorder.pause()
+  Paused : keep file handle open
+}
+
+state Saving
+state Saved <<terminal>> {
+  Saved : audio file written
+  Saved : lectures row inserted
+  Saved : worker chain enqueued
+}
+
+state ImportingFile <<active>> {
+  ImportingFile : SAF picker → copy to app storage
+}
+
+Idle              --> CheckingPermission : tap Record
+Idle              --> ImportingFile      : tap Import
+
+CheckingPermission --> Recording         : permission granted
+CheckingPermission --> PermissionDenied  : permission denied
+PermissionDenied   --> CheckingPermission : tap Retry
+PermissionDenied   --> Idle              : tap Cancel
+
+Recording --> Paused      : tap Pause
+Paused    --> Recording   : tap Resume
+Recording --> Saving      : tap Stop
+Paused    --> Saving      : tap Stop
+
+ImportingFile --> Saving  : file validated
+ImportingFile --> Idle    : pick cancelled / invalid file
+
+Saving --> Saved    : on success
+Saving --> Idle     : on failure (toast shown)
+
+Saved  --> [*]      : navigate to LectureViewScreen
+
+note right of Recording
+  WAVE level meter shown.
+  WakeLock acquired so the
+  screen-off doesn't kill capture.
+end note
+
+@enduml

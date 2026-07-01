@@ -1,0 +1,61 @@
+@startuml LectureProcessingState
+' UML State Machine — Lecture lifecycle as tracked by lectures.status
+' Owned by the WorkManager chain: TranscriptionWorker -> SummarizationWorker -> IndexingWorker
+
+title Lecture Processing State Machine
+
+skinparam state {
+  BackgroundColor<<terminal>>  #DCFCE7
+  BackgroundColor<<error>>     #FEE2E2
+  BackgroundColor<<cloud>>     #DBEAFE
+  BackgroundColor<<local>>     #FEF3C7
+}
+
+[*] --> Recorded : audio captured\nor imported
+
+state Recorded <<local>>
+state Transcribing <<cloud>>
+state Transcribed <<local>>
+state Summarizing <<cloud>>
+state Indexing <<local>>
+state Ready <<terminal>>
+state Failed <<error>>
+
+Recorded     --> Transcribing  : enqueue\nTranscriptionWorker\n[network available]
+Recorded     --> Recorded      : wait\n[offline]
+
+Transcribing --> Transcribed   : STT result persisted
+Transcribing --> Failed        : auth / quota /\nunrecoverable error
+
+Transcribed  --> Summarizing   : enqueue\nSummarizationWorker
+Summarizing  --> Indexing      : notes persisted
+Summarizing  --> Failed        : Gemini error\nafter retries
+
+Indexing     --> Ready         : FTS row written\n(+ embeddings* stretch)
+
+Failed       --> Transcribing  : user taps Retry\n(from failed stage)
+Failed       --> Summarizing   : user taps Retry\n(from failed stage)
+
+Ready        --> [*]
+
+note right of Ready
+  Lecture appears in library
+  with full transcript, notes,
+  and is searchable via FTS.
+end note
+
+note bottom of Failed
+  Partial results are kept.
+  Retry resumes from the
+  failed stage, not the start.
+end note
+
+legend right
+  | Color | Meaning |
+  | <#DBEAFE> | Cloud-bound work (network required) |
+  | <#FEF3C7> | Local work |
+  | <#DCFCE7> | Terminal success |
+  | <#FEE2E2> | Error state |
+endlegend
+
+@enduml

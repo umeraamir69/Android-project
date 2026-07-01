@@ -1,0 +1,54 @@
+@startuml SearchSequence
+' Classic UML sequence diagram — Search the lecture library (MVP, FTS)
+
+skinparam style strictuml
+skinparam sequenceMessageAlign center
+skinparam sequenceArrowThickness 1.2
+hide footbox
+
+title Search Lecture Library
+
+actor Student
+
+create "<u>searchScreen : SearchScreen</u>" as SS
+Student -> SS : new
+activate SS
+
+create "<u> : SearchController</u>" as SC
+SS -> SC : new
+activate SC
+
+== Query ==
+Student -> SS : type(query)
+SS -> SC : search(query)
+
+create "<u> : TranscriptIndex</u>" as TI
+SC -> TI : new
+activate TI
+
+SC -> TI : match(query)
+TI -> TI : runFtsQuery()
+
+loop [for each hit]
+  TI -> TI : buildSnippet()
+end
+
+TI --> SC : List<SearchHit>
+deactivate TI
+destroy TI
+
+SC --> SS : results
+SS --> Student : render hits
+
+== Open a result ==
+Student -> SS : tapResult(hit)
+SS -> SC : openLecture(lectureId, startMs)
+
+create "<u>lectureView : LectureViewScreen</u>" as LV
+SC -> LV : new(lectureId, startMs)
+activate LV
+
+LV -> LV : seekTo(startMs)
+LV --> Student : transcript + audio
+
+@enduml

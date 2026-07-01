@@ -1,0 +1,84 @@
+@startuml AppNavigationActivity
+' UML Activity Diagram — Top-level app navigation
+' Maps to the UI flow described in the proposal (Section 3.1 of architecture doc)
+
+title App Navigation Flow
+
+skinparam activity {
+  BackgroundColor       #F1F5F9
+  BorderColor           #475569
+  DiamondBackgroundColor #FEF3C7
+}
+
+start
+
+:Launch App;
+
+if (Signed in?) then (no)
+  :Show LoginScreen;
+  if (Auth success?) then (yes)
+  else (no)
+    :Show error;
+    stop
+  endif
+endif
+
+:Show LibraryScreen;
+note right
+  Tabs at bottom:
+  • Library (default)
+  • Upload
+end note
+
+repeat
+  switch (User action)
+  case ( Tap lecture )
+    :Open LectureViewScreen;
+    fork
+      :Play audio (ExoPlayer);
+    fork again
+      :Show transcript;
+    fork again
+      :Show notes (summary, key terms, actions);
+    fork again
+      :Share / Export;
+    end fork
+    :Back to Library;
+  case ( Search )
+    :Open SearchScreen;
+    :Run FTS query;
+    if (Tap result?) then (yes)
+      :Open LectureViewScreen\nat matched timestamp;
+      :Back to Library;
+    else (no)
+      :Back to Library;
+    endif
+  case ( Tap Upload tab )
+    :Show UploadScreen;
+    if (Record or Import?) then (record)
+      :Record audio
+      (see 02_audio_recording_state);
+    else (import)
+      :Pick audio file (SAF);
+    endif
+    :Save lecture;
+    :Enqueue worker chain
+    (see 01_lecture_processing_state);
+    :Show ProcessingScreen
+    with live progress;
+    :Open LectureViewScreen
+    when status = READY;
+    :Back to Library;
+  case ( Settings )
+    :Open Settings;
+    :Update API key, consent,
+     or model choice;
+    :Back to Library;
+  endswitch
+repeat while (Continue using app?) is (yes)
+-> no;
+
+:Sign out / close app;
+stop
+
+@enduml

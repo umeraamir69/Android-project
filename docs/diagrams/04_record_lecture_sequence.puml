@@ -1,0 +1,87 @@
+@startuml RecordLectureSequence
+' Classic UML sequence diagram — Record & process a new lecture
+
+skinparam style strictuml
+skinparam sequenceMessageAlign center
+skinparam sequenceArrowThickness 1.2
+hide footbox
+
+title Record & Process Lecture
+
+actor Student
+
+actor "<<system>>\nCloud Storage" as GCS
+actor "<<system>>\nSpeech-to-Text" as STT
+actor "<<system>>\nGemini" as GEM
+
+Student -> Student
+activate Student
+
+create "<u>uploadScreen : UploadScreen</u>" as UP
+Student -> UP : new
+activate UP
+
+create "<u> : RecordLectureController</u>" as CTRL
+UP -> CTRL : new(courseId)
+activate CTRL
+
+== Capture ==
+Student -> UP : tapRecord()
+UP -> CTRL : startRecording()
+
+create "<u>recorder : AudioRecorder</u>" as REC
+CTRL -> REC : new
+activate REC
+
+Student -> UP : tapStop()
+UP -> CTRL : stopRecording()
+CTRL -> REC : stop()
+REC --> CTRL : audioFile
+deactivate REC
+destroy REC
+
+create "<u>lecture : Lecture</u>" as L
+CTRL -> L : new(audioFile)
+activate L
+CTRL -> L : setStatus(RECORDED)
+
+== Transcription ==
+CTRL -> GCS : upload(audioFile)
+GCS --> CTRL : gcsUri
+
+CTRL -> L : setStatus(TRANSCRIBING)
+CTRL -> STT : longRunningRecognize(gcsUri)
+STT --> CTRL : operationName
+
+loop [poll until done]
+  CTRL -> STT : getOperation()
+  STT --> CTRL : progress
+end
+
+STT --> CTRL : transcript
+CTRL -> L : setTranscript(transcript)
+CTRL -> L : setStatus(TRANSCRIBED)
+
+== Summarization ==
+CTRL -> CTRL : chunk(transcript)
+CTRL -> L : setStatus(SUMMARIZING)
+
+loop [for each chunk]
+  CTRL -> GEM : summarize(chunk)
+  GEM --> CTRL : partialSummary
+end
+
+CTRL -> GEM : reduce(partialSummaries)
+GEM --> CTRL : finalSummary
+
+CTRL -> GEM : extract(partialSummaries)
+GEM --> CTRL : keyTerms, actionItems
+
+CTRL -> L : setNotes(finalSummary, keyTerms, actionItems)
+CTRL -> L : setStatus(READY)
+
+== Done ==
+CTRL --> UP : success(lecture)
+UP --> Student : show notes
+
+@enduml
