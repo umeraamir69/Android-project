@@ -2,12 +2,12 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
 
     <!--
-        Dark variant of Theme.AndoirdProject.
+        Dark variant of Theme.LectureLens.
         Only system-bar flags differ here — the @color references resolve to
         values-night/colors.xml automatically at night, so role bindings can
         stay in the light themes.xml without duplication.
     -->
-    <style name="Base.Theme.AndoirdProject" parent="Theme.Material3.DayNight.NoActionBar">
+    <style name="Base.Theme.LectureLens" parent="Theme.Material3.DayNight.NoActionBar">
 
         <!-- Primary -->
         <item name="colorPrimary">@color/md_primary</item>

@@ -1,7 +1,29 @@
 <resources>
-    <string name="app_name">Andoird Project</string>
+    <string name="app_name">LectureLens</string>
 
-    <!-- Theme showcase -->
+    <!-- ===== Navigation destination labels (Day 0) ===== -->
+    <string name="title_login">Sign in</string>
+    <string name="title_library">Library</string>
+    <string name="title_upload">Record / Import</string>
+    <string name="title_lecture">Lecture</string>
+    <string name="title_search">Search</string>
+    <string name="title_settings">Settings</string>
+
+    <!-- ===== Day 0 placeholders — each track replaces its own screen ===== -->
+    <string name="placeholder_login">Login placeholder — Track 1 (Zeeshan), weeks 2–3</string>
+    <string name="placeholder_library">Library placeholder — Track 2 (Daniel)</string>
+    <string name="placeholder_upload">Upload placeholder — Track 3 (Adeniyi)</string>
+    <string name="placeholder_lecture">Lecture view placeholder — Track 5 (Aaron) · lectureId=%1$d</string>
+    <string name="placeholder_search">Search placeholder — Track 5 (Aaron)</string>
+    <string name="placeholder_settings">Settings placeholder — Track 1 (Zeeshan)</string>
+
+    <string name="action_continue">Continue</string>
+    <string name="action_open_lecture">Open lecture (placeholder)</string>
+    <string name="action_upload">Record / import</string>
+    <string name="action_search">Search</string>
+    <string name="action_settings">Settings</string>
+
+    <!-- ===== Theme showcase (design-review tool) ===== -->
     <string name="open_theme_showcase">Open Theme Showcase</string>
     <string name="showcase_title">Theme Showcase</string>
     <string name="showcase_back">Back</string>

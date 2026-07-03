@@ -1,4 +1,4 @@
-package com.example.andoirdproject;
+package com.lecturelens;
 
 import org.junit.Test;
 
