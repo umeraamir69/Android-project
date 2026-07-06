@@ -2,11 +2,11 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
 
     <!--
-        Theme.AndoirdProject — Material 3 theme for LectureLens.
+        Theme.LectureLens — Material 3 theme for LectureLens.
         Style name kept as-is so the existing AndroidManifest reference resolves.
         Light tokens live in values/colors.xml; dark in values-night/colors.xml.
     -->
-    <style name="Base.Theme.AndoirdProject" parent="Theme.Material3.DayNight.NoActionBar">
+    <style name="Base.Theme.LectureLens" parent="Theme.Material3.DayNight.NoActionBar">
 
         <!-- Primary -->
         <item name="colorPrimary">@color/md_primary</item>
@@ -55,5 +55,5 @@
         <item name="android:windowLightNavigationBar" tools:targetApi="o_mr1">true</item>
     </style>
 
-    <style name="Theme.AndoirdProject" parent="Base.Theme.AndoirdProject" />
+    <style name="Theme.LectureLens" parent="Base.Theme.LectureLens" />
 </resources>

@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    FROZEN Day 0 contract — destinations + args frozen; each track replaces
+    its placeholder Fragment class in place. Add actions one per PR,
+    keep destinations alphabetized after `login` (start destination).
+-->
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/login">
+
+    <fragment
+        android:id="@+id/login"
+        android:name="com.lecturelens.ui.auth.LoginFragment"
+        android:label="@string/title_login">
+        <action
+            android:id="@+id/action_login_to_library"
+            app:destination="@id/library"
+            app:popUpTo="@id/login"
+            app:popUpToInclusive="true" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/lecture"
+        android:name="com.lecturelens.ui.lecture.LectureViewFragment"
+        android:label="@string/title_lecture">
+        <argument
+            android:name="lectureId"
+            app:argType="long" />
+        <argument
+            android:name="seekMs"
+            android:defaultValue="-1L"
+            app:argType="long" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/library"
+        android:name="com.lecturelens.ui.library.LibraryFragment"
+        android:label="@string/title_library">
+        <action
+            android:id="@+id/action_library_to_lecture"
+            app:destination="@id/lecture" />
+        <action
+            android:id="@+id/action_library_to_search"
+            app:destination="@id/search" />
+        <action
+            android:id="@+id/action_library_to_settings"
+            app:destination="@id/settings" />
+        <action
+            android:id="@+id/action_library_to_upload"
+            app:destination="@id/upload" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/search"
+        android:name="com.lecturelens.ui.search.SearchFragment"
+        android:label="@string/title_search">
+        <action
+            android:id="@+id/action_search_to_lecture"
+            app:destination="@id/lecture" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/settings"
+        android:name="com.lecturelens.ui.settings.SettingsFragment"
+        android:label="@string/title_settings" />
+
+    <fragment
+        android:id="@+id/upload"
+        android:name="com.lecturelens.ui.upload.UploadFragment"
+        android:label="@string/title_upload">
+        <argument
+            android:name="courseId"
+            android:defaultValue="-1L"
+            app:argType="long" />
+    </fragment>
+
+</navigation>

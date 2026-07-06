@@ -1,4 +1,4 @@
-package com.example.andoirdproject;
+package com.lecturelens;
 
 import android.os.Bundle;
 import android.view.View;

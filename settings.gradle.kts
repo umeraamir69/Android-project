@@ -22,6 +22,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Andoird Project"
+rootProject.name = "LectureLens"
 include(":app")
  
