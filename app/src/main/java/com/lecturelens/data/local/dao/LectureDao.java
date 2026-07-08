@@ -1,5 +1,6 @@
 package com.lecturelens.data.local.dao;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.room.Dao;
 import androidx.room.Insert;
@@ -28,4 +29,7 @@ public interface LectureDao {
 
     @Query("UPDATE lectures SET audio_path = :audioPath WHERE id = :id")
     void updateAudioPath(long id, @Nullable String audioPath);
+
+    @Query("SELECT id FROM lectures WHERE audio_path = :audioPath LIMIT 1")
+    long findIdByAudioPath(@NonNull String audioPath);
 }

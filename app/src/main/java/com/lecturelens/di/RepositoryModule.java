@@ -1,7 +1,13 @@
 package com.lecturelens.di;
 
+import com.lecturelens.data.repository.EmbeddingRepositoryImpl;
 import com.lecturelens.data.repository.LectureWriteRepositoryImpl;
+import com.lecturelens.data.repository.LlmRepositoryImpl;
+import com.lecturelens.data.repository.TranscriptionRepositoryImpl;
+import com.lecturelens.domain.repository.EmbeddingRepository;
 import com.lecturelens.domain.repository.LectureRepository;
+import com.lecturelens.domain.repository.LlmRepository;
+import com.lecturelens.domain.repository.TranscriptionRepository;
 
 import dagger.Binds;
 import dagger.Module;
@@ -9,36 +15,22 @@ import dagger.hilt.InstallIn;
 import dagger.hilt.components.SingletonComponent;
 
 /**
- * SKELETON — every track adds its own {@code @Binds} here as
- * implementations land. KEEP ENTRIES ALPHABETIZED to minimize merge
- * conflicts (see WORK_BREAKDOWN.md risks).
- *
- * Expected final shape (abstract class + @Binds abstract methods):
- *   CourseRepository        → CourseRepositoryImpl         (Track 2)
- *   EmbeddingRepository     → EmbeddingRepositoryImpl      (Track 4, stub)
- *   LectureRepository reads → LectureReadRepositoryImpl    (Track 2)
- *   LectureRepository writes→ LectureWriteRepositoryImpl   (Track 3)
- *   LlmRepository           → LlmRepositoryImpl            (Track 4)
- *   TranscriptionRepository → TranscriptionRepositoryImpl  (Track 4)
- *
- * Note: LectureRepository is ONE interface; Tracks 2+3 coordinate on a
- * single @Binds once both impls exist (delegating facade), or bind a
- * combined impl composed of the read/write halves.
+ * Repository bindings — alphabetized to reduce merge conflicts.
  */
 @Module
 @InstallIn(SingletonComponent.class)
 public abstract class RepositoryModule {
-    // TODO(all tracks): add @Binds methods, alphabetized.
 
-    // Track 3 — write half of LectureRepository.
-    // INTEGRATION (Tracks 2+3): LectureRepository is ONE frozen interface. This
-    // temporary binding points it at the write-only impl (reads throw). When
-    // Track 2's LectureReadRepositoryImpl lands, REPLACE this single line with a
-    // facade binding:
-    //     @Binds LectureRepository bind(LectureRepositoryFacade facade);
-    // where the facade @Injects both halves and delegates reads→Track 2,
-    // writes→LectureWriteRepositoryImpl. Do it in one joint PR to avoid a
-    // duplicate-binding error.
+    @Binds
+    abstract EmbeddingRepository bindEmbeddingRepository(EmbeddingRepositoryImpl impl);
+
+    // INTEGRATION (Tracks 2+3): replace with LectureRepositoryFacade when reads land.
     @Binds
     abstract LectureRepository bindLectureRepository(LectureWriteRepositoryImpl impl);
+
+    @Binds
+    abstract LlmRepository bindLlmRepository(LlmRepositoryImpl impl);
+
+    @Binds
+    abstract TranscriptionRepository bindTranscriptionRepository(TranscriptionRepositoryImpl impl);
 }

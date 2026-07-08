@@ -8,15 +8,13 @@ import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
 import com.lecturelens.core.WorkerKeys;
+import com.lecturelens.di.WorkerEntryPoint;
+import com.lecturelens.domain.usecase.GenerateNotesUseCase;
+
+import dagger.hilt.android.EntryPointAccessors;
 
 /**
- * PLACEHOLDER — owned by Track 4 (Muhammad). Chained after {@link TranscribeWorker}
- * by {@code PipelineOrchestrator}. Thin stub so the chain is demonstrable.
- *
- * <p>Real implementation: Gemini map-reduce summarization + key-term/action-item
- * extraction, persist notes on {@code AppExecutors.diskIO()}, update status
- * SUMMARIZING → (INDEXING → READY handled by the stretch EmbeddingsWorker,
- * or READY here when embeddings are skipped).
+ * Track 4 — Gemini summarization worker chained after {@link TranscribeWorker}.
  */
 public class SummarizeWorker extends Worker {
 
@@ -26,19 +24,20 @@ public class SummarizeWorker extends Worker {
 
     @NonNull
     @Override
-    public Result doWork() {
+    public androidx.work.ListenableWorker.Result doWork() {
         long lectureId = getInputData().getLong(WorkerKeys.KEY_LECTURE_ID, -1L);
         if (lectureId < 0) {
-            return Result.failure(new Data.Builder()
-                    .putString(WorkerKeys.KEY_ERROR_MSG, "Missing lectureId")
-                    .build());
+            return WorkerResultMapper.failure("Missing lectureId");
         }
 
-        // TODO(Track 4): real summarization. Stub succeeds immediately.
-        setProgressAsync(new Data.Builder().putInt(WorkerKeys.PROGRESS_PERCENT, 100).build());
+        setProgressAsync(new Data.Builder().putInt(WorkerKeys.PROGRESS_PERCENT, 10).build());
 
-        return Result.success(new Data.Builder()
-                .putLong(WorkerKeys.KEY_LECTURE_ID, lectureId)
-                .build());
+        GenerateNotesUseCase useCase = EntryPointAccessors.fromApplication(
+                getApplicationContext(), WorkerEntryPoint.class).generateNotesUseCase();
+
+        com.lecturelens.core.Result<com.lecturelens.domain.model.Notes> result = useCase.execute(lectureId);
+
+        setProgressAsync(new Data.Builder().putInt(WorkerKeys.PROGRESS_PERCENT, 100).build());
+        return WorkerResultMapper.fromDomainResult(lectureId, result);
     }
 }

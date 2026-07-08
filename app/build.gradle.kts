@@ -1,7 +1,20 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.hilt)
 }
+
+val localProperties = Properties().apply {
+    val file = rootProject.file("local.properties")
+    if (file.exists()) {
+        file.inputStream().use { load(it) }
+    }
+}
+
+fun localProperty(name: String, default: String = ""): String =
+    localProperties.getProperty(name)?.trim().orEmpty().ifEmpty { default }
+
 android {
     namespace = "com.lecturelens"
     compileSdk = 36
@@ -12,6 +25,10 @@ android {
         versionCode = 1
         versionName = "0.1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // Track 4 — keys from local.properties (gitignored). Empty string if unset.
+        buildConfigField("String", "STT_API_KEY", "\"${localProperty("STT_API_KEY")}\"")
+        buildConfigField("String", "GEMINI_API_KEY", "\"${localProperty("GEMINI_API_KEY")}\"")
     }
     buildTypes {
         release {
@@ -27,7 +44,10 @@ android {
         targetCompatibility = JavaVersion.VERSION_11
     }
     // Java + Views stack (Day 0 decision) — ViewBinding, no Compose.
-    buildFeatures { viewBinding = true }
+    buildFeatures {
+        viewBinding = true
+        buildConfig = true
+    }
 }
 dependencies {
     // UI — Views
