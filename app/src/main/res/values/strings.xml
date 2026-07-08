@@ -23,6 +23,25 @@
     <string name="action_search">Search</string>
     <string name="action_settings">Settings</string>
 
+    <!-- ===== Library (Track 2) ===== -->
+    <string name="library_empty">No lectures yet.\nTap the mic to record your first lecture.</string>
+    <string name="action_record_lecture">Record a lecture</string>
+    <string name="cd_toggle_course">Expand or collapse course</string>
+    <string name="lecture_meta">%1$s · %2$s</string>
+    <plurals name="lecture_count">
+        <item quantity="one">%d lecture</item>
+        <item quantity="other">%d lectures</item>
+    </plurals>
+
+    <!-- Lecture pipeline status labels (StatusBadgeView) -->
+    <string name="status_recorded">Recorded</string>
+    <string name="status_transcribing">Transcribing</string>
+    <string name="status_transcribed">Transcribed</string>
+    <string name="status_summarizing">Summarizing</string>
+    <string name="status_indexing">Indexing</string>
+    <string name="status_ready">Ready</string>
+    <string name="status_failed">Failed</string>
+
     <!-- ===== Theme showcase (design-review tool) ===== -->
     <string name="open_theme_showcase">Open Theme Showcase</string>
     <string name="showcase_title">Theme Showcase</string>

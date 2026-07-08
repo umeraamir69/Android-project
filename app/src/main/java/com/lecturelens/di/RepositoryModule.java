@@ -1,5 +1,8 @@
 package com.lecturelens.di;
 
+import com.lecturelens.data.repository.CourseRepositoryImpl;
+import com.lecturelens.data.repository.LectureReadRepositoryImpl;
+import com.lecturelens.domain.repository.CourseRepository;
 import com.lecturelens.data.repository.LectureWriteRepositoryImpl;
 import com.lecturelens.domain.repository.LectureRepository;
 
@@ -28,6 +31,17 @@ import dagger.hilt.components.SingletonComponent;
 @Module
 @InstallIn(SingletonComponent.class)
 public abstract class RepositoryModule {
+
+    @Binds
+    abstract CourseRepository bindCourseRepository(CourseRepositoryImpl impl);
+
+    /**
+     * Temporary: read-only stub carries the whole interface until Track 3's
+     * write impl lands, then Tracks 2+3 swap in the combined impl together.
+     */
+    @Binds
+    abstract LectureRepository bindLectureRepository(LectureReadRepositoryImpl impl);
+}
     // TODO(all tracks): add @Binds methods, alphabetized.
 
     // Track 3 — write half of LectureRepository.
