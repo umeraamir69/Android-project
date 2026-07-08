@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
-
     <!-- Cloud STT + Gemini calls (arch doc §1.2) -->
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- Lecture capture (Track 3) -->
@@ -9,7 +8,6 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-
     <application
         android:name=".LectureLensApp"
         android:allowBackup="true"
@@ -20,18 +18,20 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.LectureLens">
-
         <!-- Single-activity nav host; screens are fragments in nav_graph.xml -->
         <activity
             android:name=".MainActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
+        <!-- Track 3: foreground recording service keeps the mic alive off-screen -->
+        <service
+            android:name=".data.audio.RecordingService"
+            android:exported="false"
+            android:foregroundServiceType="microphone" />
         <!-- Design-review tool; reachable from the Settings placeholder -->
         <activity
             android:name=".ThemeShowcaseActivity"
@@ -39,5 +39,4 @@
             android:label="@string/showcase_title"
             android:parentActivityName=".MainActivity" />
     </application>
-
 </manifest>
