@@ -143,4 +143,23 @@
     <string name="showcase_progress_circular_indeterminate">Indeterminate</string>
     <string name="showcase_progress_circular_determinate">Determinate</string>
     <string name="showcase_progress_circular_small">Small</string>
+
+    <!-- ===== Track 3 — Record / Upload ===== -->
+    <string name="upload_record">Record</string>
+    <string name="upload_pause">Pause</string>
+    <string name="upload_resume">Resume</string>
+    <string name="upload_stop">Stop</string>
+    <string name="upload_import">Import a file</string>
+    <string name="upload_hint_idle">Record a lecture or import an audio file</string>
+    <string name="upload_saving">Saving…</string>
+    <string name="upload_permission_denied">Microphone access is needed to record. Grant it to continue.</string>
+    <string name="upload_retry">Retry</string>
+    <string name="upload_cancel">Cancel</string>
+    <string name="upload_import_failed">Couldn\'t import that file</string>
+    <string name="upload_content_desc_level">Recording level</string>
+
+    <!-- Foreground recording service -->
+    <string name="recording_channel_name">Recording</string>
+    <string name="recording_notification_title">Recording lecture</string>
+    <string name="recording_notification_text">Tap the app to return to the recording.</string>
 </resources>
