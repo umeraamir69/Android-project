@@ -1,5 +1,9 @@
 package com.lecturelens.di;
 
+import com.lecturelens.data.repository.LectureWriteRepositoryImpl;
+import com.lecturelens.domain.repository.LectureRepository;
+
+import dagger.Binds;
 import dagger.Module;
 import dagger.hilt.InstallIn;
 import dagger.hilt.components.SingletonComponent;
@@ -25,4 +29,16 @@ import dagger.hilt.components.SingletonComponent;
 @InstallIn(SingletonComponent.class)
 public abstract class RepositoryModule {
     // TODO(all tracks): add @Binds methods, alphabetized.
+
+    // Track 3 — write half of LectureRepository.
+    // INTEGRATION (Tracks 2+3): LectureRepository is ONE frozen interface. This
+    // temporary binding points it at the write-only impl (reads throw). When
+    // Track 2's LectureReadRepositoryImpl lands, REPLACE this single line with a
+    // facade binding:
+    //     @Binds LectureRepository bind(LectureRepositoryFacade facade);
+    // where the facade @Injects both halves and delegates reads→Track 2,
+    // writes→LectureWriteRepositoryImpl. Do it in one joint PR to avoid a
+    // duplicate-binding error.
+    @Binds
+    abstract LectureRepository bindLectureRepository(LectureWriteRepositoryImpl impl);
 }

@@ -8,7 +8,6 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/nav_graph"
     app:startDestination="@id/login">
-
     <fragment
         android:id="@+id/login"
         android:name="com.lecturelens.ui.auth.LoginFragment"
@@ -19,7 +18,6 @@
             app:popUpTo="@id/login"
             app:popUpToInclusive="true" />
     </fragment>
-
     <fragment
         android:id="@+id/lecture"
         android:name="com.lecturelens.ui.lecture.LectureViewFragment"
@@ -32,7 +30,6 @@
             android:defaultValue="-1L"
             app:argType="long" />
     </fragment>
-
     <fragment
         android:id="@+id/library"
         android:name="com.lecturelens.ui.library.LibraryFragment"
@@ -50,7 +47,6 @@
             android:id="@+id/action_library_to_upload"
             app:destination="@id/upload" />
     </fragment>
-
     <fragment
         android:id="@+id/search"
         android:name="com.lecturelens.ui.search.SearchFragment"
@@ -59,12 +55,10 @@
             android:id="@+id/action_search_to_lecture"
             app:destination="@id/lecture" />
     </fragment>
-
     <fragment
         android:id="@+id/settings"
         android:name="com.lecturelens.ui.settings.SettingsFragment"
         android:label="@string/title_settings" />
-
     <fragment
         android:id="@+id/upload"
         android:name="com.lecturelens.ui.upload.UploadFragment"
@@ -73,6 +67,11 @@
             android:name="courseId"
             android:defaultValue="-1L"
             app:argType="long" />
+        <!-- Track 3: on save, open the new lecture and drop Upload from the back stack. -->
+        <action
+            android:id="@+id/action_upload_to_lecture"
+            app:destination="@id/lecture"
+            app:popUpTo="@id/upload"
+            app:popUpToInclusive="true" />
     </fragment>
-
 </navigation>
