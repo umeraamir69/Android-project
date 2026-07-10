@@ -4,7 +4,6 @@ import androidx.annotation.NonNull;
 
 import com.lecturelens.core.Result;
 import com.lecturelens.domain.model.LectureStatus;
-import com.lecturelens.domain.model.LectureStatus;
 import com.lecturelens.domain.model.Transcript;
 import com.lecturelens.domain.repository.LectureRepository;
 import com.lecturelens.domain.repository.TranscriptionRepository;
