@@ -8,24 +8,16 @@ import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
 import com.lecturelens.core.WorkerKeys;
+import com.lecturelens.di.WorkerEntryPoint;
+import com.lecturelens.domain.usecase.TranscribeAudioUseCase;
+import com.lecturelens.processing.PipelineOrchestrator;
+
+import java.io.File;
+
+import dagger.hilt.android.EntryPointAccessors;
 
 /**
- * PLACEHOLDER — owned by Track 4 (Muhammad). Track 3 ships this thin stub only
- * so {@code PipelineOrchestrator} has a real {@link Worker} class to chain and
- * the record → enqueue path is demonstrable before the cloud work lands.
- *
- * <p>Contract Track 3 depends on (do not change without a joint PR):
- * <ul>
- *   <li>Reads {@link WorkerKeys#KEY_LECTURE_ID} and {@link WorkerKeys#KEY_AUDIO_PATH}
- *       (plus optional {@link WorkerKeys#KEY_LANGUAGE}) from input {@link Data}.</li>
- *   <li>Forwards {@code KEY_LECTURE_ID} in its output so the next stage receives it.</li>
- *   <li>On failure, returns {@link Result#failure(Data)} with
- *       {@link WorkerKeys#KEY_ERROR_MSG} set.</li>
- * </ul>
- *
- * <p>Real implementation: Cloud Speech-to-Text v2 longRunningRecognize + LRO
- * polling, persist transcript/segments on {@code AppExecutors.diskIO()},
- * update {@code lectures.status} TRANSCRIBING → TRANSCRIBED (WORK_BREAKDOWN §4).
+ * Track 4 — Cloud Speech-to-Text worker chained by {@link PipelineOrchestrator}.
  */
 public class TranscribeWorker extends Worker {
 
@@ -35,21 +27,28 @@ public class TranscribeWorker extends Worker {
 
     @NonNull
     @Override
-    public Result doWork() {
+    public androidx.work.ListenableWorker.Result doWork() {
         long lectureId = getInputData().getLong(WorkerKeys.KEY_LECTURE_ID, -1L);
         String audioPath = getInputData().getString(WorkerKeys.KEY_AUDIO_PATH);
+        String language = getInputData().getString(WorkerKeys.KEY_LANGUAGE);
         if (lectureId < 0 || audioPath == null) {
-            return Result.failure(new Data.Builder()
-                    .putString(WorkerKeys.KEY_ERROR_MSG, "Missing lectureId/audioPath")
-                    .build());
+            return WorkerResultMapper.failure("Missing lectureId/audioPath");
+        }
+        if (language == null || language.isEmpty()) {
+            language = PipelineOrchestrator.DEFAULT_LANGUAGE;
         }
 
-        // TODO(Track 4): real transcription. Stub succeeds immediately.
-        setProgressAsync(new Data.Builder().putInt(WorkerKeys.PROGRESS_PERCENT, 100).build());
+        setProgressAsync(new Data.Builder().putInt(WorkerKeys.PROGRESS_PERCENT, 10).build());
 
-        Data output = new Data.Builder()
-                .putLong(WorkerKeys.KEY_LECTURE_ID, lectureId)
-                .build();
-        return Result.success(output);
+        TranscribeAudioUseCase useCase = EntryPointAccessors.fromApplication(
+                getApplicationContext(), WorkerEntryPoint.class).transcribeAudioUseCase();
+
+        com.lecturelens.core.Result<com.lecturelens.domain.model.Transcript> result = useCase.execute(
+                lectureId,
+                new File(audioPath),
+                language);
+
+        setProgressAsync(new Data.Builder().putInt(WorkerKeys.PROGRESS_PERCENT, 100).build());
+        return WorkerResultMapper.fromDomainResult(lectureId, result);
     }
 }

@@ -10,6 +10,8 @@ import com.lecturelens.data.audio.AudioFileFactory;
 import com.lecturelens.data.audio.AudioRecorder;
 import com.lecturelens.data.consent.PermissiveConsentGate;
 import com.lecturelens.data.local.dao.LectureDao;
+import com.lecturelens.data.local.dao.NotesDao;
+import com.lecturelens.data.local.dao.TranscriptDao;
 import com.lecturelens.domain.repository.ConsentGate;
 
 import javax.inject.Singleton;
@@ -68,5 +70,15 @@ public abstract class UploadModule {
     @Provides
     static LectureDao provideLectureDao(UploadTempDatabase db) {
         return db.lectureDao();
+    }
+
+    @Provides
+    static TranscriptDao provideTranscriptDao(UploadTempDatabase db) {
+        return db.transcriptDao();
+    }
+
+    @Provides
+    static NotesDao provideNotesDao(UploadTempDatabase db) {
+        return db.notesDao();
     }
 }
