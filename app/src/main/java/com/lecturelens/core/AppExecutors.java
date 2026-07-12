@@ -16,19 +16,22 @@ import java.util.concurrent.Executors;
  * through {@link #networkIO()} (or a WorkManager Worker), and UI updates
  * through {@link #mainThread()} or {@code LiveData.postValue()}.
  *
+ * <p>{@link #mainThread()} is created lazily: constructing the Handler needs a
+ * Looper, which doesn't exist in JVM unit tests — lazy creation lets tests
+ * subclass this with direct executors without touching android.os.
+ *
  * Provided as a singleton via {@code di/ExecutorsModule}.
  */
 public class AppExecutors {
 
     private final Executor diskIO;
     private final Executor networkIO;
-    private final Executor mainThread;
+    private volatile Executor mainThread;
 
     public AppExecutors() {
         // Single thread => DB writes are serialized, no write races.
         this.diskIO = Executors.newSingleThreadExecutor();
         this.networkIO = Executors.newFixedThreadPool(3);
-        this.mainThread = new MainThreadExecutor();
     }
 
     @NonNull
@@ -43,7 +46,17 @@ public class AppExecutors {
 
     @NonNull
     public Executor mainThread() {
-        return mainThread;
+        Executor local = mainThread;
+        if (local == null) {
+            synchronized (this) {
+                local = mainThread;
+                if (local == null) {
+                    local = new MainThreadExecutor();
+                    mainThread = local;
+                }
+            }
+        }
+        return local;
     }
 
     private static class MainThreadExecutor implements Executor {

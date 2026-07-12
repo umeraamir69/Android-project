@@ -90,7 +90,11 @@ public class CoursesAdapter extends ListAdapter<CourseSection, CoursesAdapter.Co
         void bind(@NonNull CourseSection section) {
             Course course = section.getCourse();
             courseId = course.getId();
-            binding.textCourseName.setText(course.getName());
+            binding.textCourseName.setText(
+                    courseId == LibraryViewModel.UNCATEGORIZED_COURSE_ID
+                            ? binding.getRoot().getContext()
+                                    .getString(R.string.library_uncategorized)
+                            : course.getName());
             binding.viewCourseColor.setBackgroundTintList(
                     ColorStateList.valueOf(course.getColor()));
             int count = section.getLectures().size();

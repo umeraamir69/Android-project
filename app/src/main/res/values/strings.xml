@@ -10,12 +10,10 @@
     <string name="title_settings">Settings</string>
 
     <!-- ===== Day 0 placeholders — each track replaces its own screen ===== -->
-    <string name="placeholder_login">Login placeholder — Track 1 (Zeeshan), weeks 2–3</string>
     <string name="placeholder_library">Library placeholder — Track 2 (Daniel)</string>
     <string name="placeholder_upload">Upload placeholder — Track 3 (Adeniyi)</string>
     <string name="placeholder_lecture">Lecture view placeholder — Track 5 (Aaron) · lectureId=%1$d</string>
     <string name="placeholder_search">Search placeholder — Track 5 (Aaron)</string>
-    <string name="placeholder_settings">Settings placeholder — Track 1 (Zeeshan)</string>
 
     <string name="action_continue">Continue</string>
     <string name="action_open_lecture">Open lecture (placeholder)</string>
@@ -23,8 +21,25 @@
     <string name="action_search">Search</string>
     <string name="action_settings">Settings</string>
 
+    <!-- ===== Login (Track 1) ===== -->
+    <string name="login_headline">LectureLens</string>
+    <string name="login_subtitle">Turn lecture audio into searchable notes</string>
+    <string name="login_email_hint">Email</string>
+    <string name="login_api_key_hint">Google API key</string>
+    <string name="login_api_key_helper">Stored encrypted on this device</string>
+    <string name="login_consent_label">Process my lecture audio with Google cloud services</string>
+    <string name="login_consent_note">Optional — without consent, recordings stay on this device and are not transcribed. You can change this any time in Settings.</string>
+
+    <!-- ===== Settings (Track 1) ===== -->
+    <string name="settings_signed_in_as">Signed in as %1$s</string>
+    <string name="action_save">Save</string>
+    <string name="settings_key_saved">API key saved</string>
+    <string name="settings_consent_label">Cloud processing consent</string>
+    <string name="settings_consent_note">When off, new recordings are saved locally but never uploaded for transcription. Doesn\'t cancel processing already in progress.</string>
+
     <!-- ===== Library (Track 2) ===== -->
     <string name="library_empty">No lectures yet.\nTap the mic to record your first lecture.</string>
+    <string name="library_uncategorized">Uncategorized</string>
     <string name="action_record_lecture">Record a lecture</string>
     <string name="cd_toggle_course">Expand or collapse course</string>
     <string name="lecture_meta">%1$s · %2$s</string>
