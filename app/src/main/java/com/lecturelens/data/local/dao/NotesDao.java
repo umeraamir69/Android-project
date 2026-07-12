@@ -9,7 +9,8 @@ import androidx.room.Query;
 import com.lecturelens.data.local.entity.NotesEntity;
 
 /**
- * TEMP — Track 4 DAO until Track 1 absorbs into {@code LectureLensDatabase}.
+ * Notes reads/writes for {@code LectureLensDatabase}. Written by Track 4's
+ * summarization pipeline; {@code observeNotes} backs Track 5's notes tab.
  */
 @Dao
 public interface NotesDao {

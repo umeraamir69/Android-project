@@ -19,9 +19,8 @@ import javax.inject.Singleton;
  * {@link LectureReadRepositoryImpl} and writes to Track 3's
  * {@link LectureWriteRepositoryImpl}.
  *
- * <p>Reads still come from the in-memory DevSeed stub until Track 1's Room
- * read path lands, so freshly inserted lectures won't appear in the Library
- * list yet — swap the read half to the DAO-backed impl when it exists.
+ * <p>Both halves are DAO-backed against Track 1's {@code LectureLensDatabase},
+ * so inserts from the record flow appear live in the Library list.
  */
 @Singleton
 public class LectureRepositoryFacade implements LectureRepository {

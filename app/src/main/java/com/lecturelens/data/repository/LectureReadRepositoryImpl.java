@@ -3,38 +3,33 @@ package com.lecturelens.data.repository;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.lifecycle.LiveData;
-import androidx.lifecycle.MediatorLiveData;
-import androidx.lifecycle.MutableLiveData;
+import androidx.lifecycle.Transformations;
 
+import com.lecturelens.data.local.dao.LectureDao;
 import com.lecturelens.domain.model.Lecture;
 import com.lecturelens.domain.model.LectureStatus;
 import com.lecturelens.domain.repository.LectureRepository;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
 /**
- * Track 2 (Daniel) — READ side of {@link LectureRepository}.
+ * Track 2 (Daniel) — READ side of {@link LectureRepository}, DAO-backed since
+ * Track 1's Room DB landed (previously an in-memory DevSeed stub).
  *
- * IN-MEMORY STUB — backs the Library UI until Track 1 lands Room. Reads will
- * delegate to {@code LectureDao} once it exists.
- *
- * Writes belong to Track 3 (Adeniyi, {@code LectureWriteRepositoryImpl});
- * they throw here so accidental use is caught in dev. Once both halves are
- * real, Tracks 2+3 bind a combined impl per the RepositoryModule note.
+ * Writes belong to Track 3 ({@code LectureWriteRepositoryImpl}); both halves
+ * are bound together by {@code LectureRepositoryFacade}.
  */
 @Singleton
 public class LectureReadRepositoryImpl implements LectureRepository {
 
-    private final MutableLiveData<List<Lecture>> liveLectures =
-            new MutableLiveData<>(Collections.unmodifiableList(DevSeed.lectures()));
+    private final LectureDao dao;
 
     @Inject
-    public LectureReadRepositoryImpl() {
+    public LectureReadRepositoryImpl(@NonNull LectureDao dao) {
+        this.dao = dao;
     }
 
     // ---- Reads (Track 2) ----
@@ -42,38 +37,21 @@ public class LectureReadRepositoryImpl implements LectureRepository {
     @NonNull
     @Override
     public LiveData<List<Lecture>> observeAll() {
-        return liveLectures;
+        return Transformations.map(dao.observeAll(), LectureEntityMapper::toDomain);
     }
 
     @NonNull
     @Override
     public LiveData<List<Lecture>> observeByCourse(long courseId) {
-        MediatorLiveData<List<Lecture>> filtered = new MediatorLiveData<>();
-        filtered.addSource(liveLectures, lectures -> {
-            List<Lecture> match = new ArrayList<>();
-            for (Lecture lecture : lectures) {
-                if (lecture.getCourseId() == courseId) {
-                    match.add(lecture);
-                }
-            }
-            filtered.setValue(Collections.unmodifiableList(match));
-        });
-        return filtered;
+        return Transformations.map(dao.observeByCourse(courseId), LectureEntityMapper::toDomain);
     }
 
     @NonNull
     @Override
     public LiveData<Lecture> observeById(long id) {
-        MediatorLiveData<Lecture> found = new MediatorLiveData<>();
-        found.addSource(liveLectures, lectures -> {
-            for (Lecture lecture : lectures) {
-                if (lecture.getId() == id) {
-                    found.setValue(lecture);
-                    return;
-                }
-            }
-        });
-        return found;
+        // Emits null when the lecture doesn't exist — observers must
+        // null-check rather than waiting forever (old stub never emitted).
+        return Transformations.map(dao.observeById(id), LectureEntityMapper::toDomain);
     }
 
     // ---- Writes (Track 3 — not implemented here) ----

@@ -31,6 +31,16 @@ import dagger.hilt.android.lifecycle.HiltViewModel;
 @HiltViewModel
 public class LibraryViewModel extends BaseViewModel<List<CourseSection>> {
 
+    /**
+     * Synthetic course id for lectures whose course_id matches no course
+     * (e.g. recordings started without a course context — upload's nav arg
+     * defaults to -1). Rendered as "Uncategorized" by CoursesAdapter so they
+     * are never silently dropped from the Library.
+     */
+    public static final long UNCATEGORIZED_COURSE_ID = -1L;
+
+    private static final int UNCATEGORIZED_COLOR = 0xFF6F7976; // neutral variant
+
     private final LiveData<List<Course>> courses;
     private final LiveData<List<Lecture>> lectures;
 
@@ -83,13 +93,28 @@ public class LibraryViewModel extends BaseViewModel<List<CourseSection>> {
             }
             group.add(lecture);
         }
-        List<CourseSection> sections = new ArrayList<>(latestCourses.size());
+        List<CourseSection> sections = new ArrayList<>(latestCourses.size() + 1);
         for (Course course : latestCourses) {
-            List<Lecture> group = byCourse.get(course.getId());
+            List<Lecture> group = byCourse.remove(course.getId());
             sections.add(new CourseSection(
                     course,
                     group != null ? group : new ArrayList<>(),
                     !collapsedCourseIds.contains(course.getId())));
+        }
+        // Anything left in byCourse has no matching course row — surface it in
+        // an "Uncategorized" section instead of dropping it.
+        if (!byCourse.isEmpty()) {
+            List<Lecture> orphans = new ArrayList<>();
+            for (List<Lecture> group : byCourse.values()) {
+                orphans.addAll(group);
+            }
+            orphans.sort((a, b) -> Long.compare(b.getDate(), a.getDate()));
+            Course uncategorized = new Course(
+                    UNCATEGORIZED_COURSE_ID, "", UNCATEGORIZED_COLOR, 0L);
+            sections.add(new CourseSection(
+                    uncategorized,
+                    orphans,
+                    !collapsedCourseIds.contains(UNCATEGORIZED_COURSE_ID)));
         }
         setSuccess(sections);
     }

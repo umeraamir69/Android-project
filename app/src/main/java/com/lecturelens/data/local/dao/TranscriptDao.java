@@ -13,7 +13,9 @@ import com.lecturelens.data.local.entity.TranscriptSegmentEntity;
 import java.util.List;
 
 /**
- * TEMP — Track 4 DAO until Track 1 absorbs into {@code LectureLensDatabase}.
+ * Transcript reads/writes for {@code LectureLensDatabase}. Writes are used by
+ * Track 4's transcription pipeline; the {@code observe*} reads back Track 5's
+ * lecture view.
  */
 @Dao
 public interface TranscriptDao {
