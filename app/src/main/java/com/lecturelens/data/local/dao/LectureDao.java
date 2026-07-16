@@ -45,6 +45,11 @@ public interface LectureDao {
     @Query("SELECT * FROM lectures WHERE id = :id LIMIT 1")
     LiveData<LectureEntity> observeById(long id);
 
+    /** Synchronous — Track 5 export / workers. Call on diskIO. */
+    @Query("SELECT * FROM lectures WHERE id = :id LIMIT 1")
+    @Nullable
+    LectureEntity getByIdSync(long id);
+
     /** Synchronous — used by DatabaseSeeder's is-empty check. */
     @Query("SELECT COUNT(*) FROM lectures")
     int count();
