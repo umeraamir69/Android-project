@@ -3,16 +3,20 @@ package com.lecturelens.data.repository;
 import androidx.annotation.NonNull;
 import androidx.annotation.VisibleForTesting;
 
+import com.google.gson.Gson;
 import com.lecturelens.data.local.dao.CourseDao;
 import com.lecturelens.data.local.dao.LectureDao;
+import com.lecturelens.data.local.dao.NotesDao;
 import com.lecturelens.data.local.dao.TranscriptDao;
 import com.lecturelens.data.local.entity.CourseEntity;
 import com.lecturelens.data.local.entity.LectureEntity;
+import com.lecturelens.data.local.entity.NotesEntity;
 import com.lecturelens.data.local.entity.TranscriptEntity;
 import com.lecturelens.data.local.entity.TranscriptSegmentEntity;
 import com.lecturelens.domain.model.LectureStatus;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -30,17 +34,22 @@ import javax.inject.Singleton;
 @Singleton
 public class DatabaseSeeder {
 
+    private static final Gson GSON = new Gson();
+
     private final CourseDao courseDao;
     private final LectureDao lectureDao;
     private final TranscriptDao transcriptDao;
+    private final NotesDao notesDao;
 
     @Inject
     public DatabaseSeeder(@NonNull CourseDao courseDao,
                           @NonNull LectureDao lectureDao,
-                          @NonNull TranscriptDao transcriptDao) {
+                          @NonNull TranscriptDao transcriptDao,
+                          @NonNull NotesDao notesDao) {
         this.courseDao = courseDao;
         this.lectureDao = lectureDao;
         this.transcriptDao = transcriptDao;
+        this.notesDao = notesDao;
     }
 
     /**
@@ -52,6 +61,7 @@ public class DatabaseSeeder {
         this.courseDao = null;
         this.lectureDao = null;
         this.transcriptDao = null;
+        this.notesDao = null;
     }
 
     /** @return true if seeding ran (DB was empty). */
@@ -68,7 +78,7 @@ public class DatabaseSeeder {
         course.createdAt = now - TimeUnit.DAYS.toMillis(30);
         long courseId = courseDao.insert(course);
 
-        // Lecture 1 — READY, with transcript segments so search/lecture view work.
+        // Lecture 1 — READY, with transcript + notes so Track 5 can demo fully.
         LectureEntity ready = new LectureEntity();
         ready.courseId = courseId;
         ready.title = "Week 6 — Activities & Lifecycle (demo)";
@@ -86,6 +96,18 @@ public class DatabaseSeeder {
         transcript.language = "en-US";
         transcript.modelUsed = "seed";
         transcriptDao.replaceTranscript(transcript, demoSegments(readyId));
+
+        NotesEntity notes = new NotesEntity();
+        notes.lectureId = readyId;
+        notes.summary = "Activity lifecycle callbacks run in a fixed order. "
+                + "Configuration changes recreate the activity, so persist UI state "
+                + "and avoid leaking view references from fragments.";
+        notes.keyTermsJson = GSON.toJson(Arrays.asList(
+                "lifecycle", "onCreate", "onDestroyView", "configuration change"));
+        notes.actionItemsJson = GSON.toJson(Arrays.asList(
+                "Review the activity lifecycle diagram",
+                "Never hold a View past onDestroyView"));
+        notesDao.insert(notes);
 
         // Lecture 2 — RECORDED, exercises the status badge path.
         LectureEntity recorded = new LectureEntity();
