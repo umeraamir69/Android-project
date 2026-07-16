@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Track 5 — paths exposed via FileProvider for Markdown export shares. -->
+<paths>
+    <files-path
+        name="exports"
+        path="exports/" />
+</paths>
