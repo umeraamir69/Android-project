@@ -24,19 +24,60 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginHorizontal="16dp"
-            android:layout_marginBottom="12dp"
-            android:hint="@string/search_hint">
+            android:layout_marginBottom="8dp"
+            android:hint="@string/search_hint"
+            app:endIconMode="clear_text"
+            app:startIconDrawable="@drawable/ic_search_24">
 
-            <com.google.android.material.textfield.TextInputEditText
+            <com.google.android.material.textfield.MaterialAutoCompleteTextView
                 android:id="@+id/input_query"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:completionThreshold="2"
                 android:imeOptions="actionSearch"
                 android:inputType="text"
                 android:maxLines="1" />
-
         </com.google.android.material.textfield.TextInputLayout>
 
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/chip_filters"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingHorizontal="16dp"
+            android:paddingBottom="8dp"
+            app:singleLine="true"
+            app:singleSelection="true"
+            app:selectionRequired="true">
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip_all"
+                style="@style/Widget.Material3.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checked="true"
+                android:text="@string/search_filter_all" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip_transcript"
+                style="@style/Widget.Material3.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/search_filter_transcript" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip_notes"
+                style="@style/Widget.Material3.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/search_filter_notes" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip_chat"
+                style="@style/Widget.Material3.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/search_filter_chat" />
+        </com.google.android.material.chip.ChipGroup>
     </com.google.android.material.appbar.AppBarLayout>
 
     <androidx.recyclerview.widget.RecyclerView

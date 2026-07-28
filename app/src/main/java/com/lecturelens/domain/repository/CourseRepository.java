@@ -26,6 +26,9 @@ public interface CourseRepository {
     /** Call on diskIO(). */
     void rename(long id, @NonNull String name);
 
+    /** Updates course name + professor. Call on diskIO(). */
+    void updateDetails(long id, @NonNull String name, @NonNull String professor);
+
     /**
      * Deletes the course row. Callers should move its lectures to Uncategorized
      * first. Call on diskIO().

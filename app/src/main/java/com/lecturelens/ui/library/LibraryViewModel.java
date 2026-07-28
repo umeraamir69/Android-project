@@ -166,19 +166,25 @@ public class LibraryViewModel extends BaseViewModel<List<CourseSection>> {
     }
 
     /** Creates a new category/course. Empty names are ignored. */
-    public void addCourse(@NonNull String rawName) {
+    public void addCourse(@NonNull String rawName, @Nullable String professor) {
         String name = rawName.trim();
         if (name.isEmpty()) {
             return;
         }
+        String prof = professor != null ? professor.trim() : "";
         executors.diskIO().execute(() -> {
             int colorIndex = latestCourses == null ? 0 : latestCourses.size() % COURSE_COLORS.length;
-            Course course = new Course(0L, name, COURSE_COLORS[colorIndex], System.currentTimeMillis());
+            Course course = new Course(
+                    0L, name, COURSE_COLORS[colorIndex], System.currentTimeMillis(), prof);
             courseRepository.insert(course);
         });
     }
 
-    public void renameCourse(long courseId, @NonNull String rawName) {
+    public void addCourse(@NonNull String rawName) {
+        addCourse(rawName, "");
+    }
+
+    public void renameCourse(long courseId, @NonNull String rawName, @Nullable String professor) {
         if (courseId == UNCATEGORIZED_COURSE_ID) {
             return;
         }
@@ -186,7 +192,12 @@ public class LibraryViewModel extends BaseViewModel<List<CourseSection>> {
         if (name.isEmpty()) {
             return;
         }
-        executors.diskIO().execute(() -> courseRepository.rename(courseId, name));
+        String prof = professor != null ? professor.trim() : "";
+        executors.diskIO().execute(() -> courseRepository.updateDetails(courseId, name, prof));
+    }
+
+    public void renameCourse(long courseId, @NonNull String rawName) {
+        renameCourse(courseId, rawName, "");
     }
 
     /**

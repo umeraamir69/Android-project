@@ -5,8 +5,8 @@ import androidx.annotation.NonNull;
 import com.lecturelens.domain.model.SharedNotesPacket;
 
 /**
- * Cloud share of lecture notes (Firebase Firestore).
- * Codes are short, human-readable tokens other users can open in Settings.
+ * Cloud share of lecture notes (Firebase Firestore + Storage for handout files).
+ * Codes are short, human-readable tokens other users can open in the app.
  */
 public interface CloudShareRepository {
 
@@ -25,4 +25,8 @@ public interface CloudShareRepository {
     void publish(@NonNull SharedNotesPacket packet, @NonNull PublishCallback callback);
 
     void fetchByCode(@NonNull String shareCode, @NonNull FetchCallback callback);
+
+    /** Pre-allocate a share code before uploading handout files. */
+    @NonNull
+    String allocateShareCode();
 }

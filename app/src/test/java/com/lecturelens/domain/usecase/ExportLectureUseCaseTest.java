@@ -38,6 +38,18 @@ public class ExportLectureUseCaseTest {
     }
 
     @Test
+    public void buildMarkdown_includesStudentAttribution() {
+        String md = ExportLectureUseCase.buildMarkdown(
+                "Week 6",
+                "Transcript",
+                null,
+                "### Student / course\n\n- Student: Morgan Lee\n- Professor: Dr. Ada");
+        assertTrue(md.contains("Student: Morgan Lee"));
+        assertTrue(md.contains("Professor: Dr. Ada"));
+        assertTrue(md.contains("## Summary"));
+    }
+
+    @Test
     public void buildMarkdown_handlesMissingNotes() {
         String md = ExportLectureUseCase.buildMarkdown(
                 "Empty",

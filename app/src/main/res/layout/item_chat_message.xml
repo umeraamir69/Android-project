@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingHorizontal="12dp"
+    android:paddingVertical="4dp">
+
+    <TextView
+        android:id="@+id/text_chat_role"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?attr/textAppearanceLabelMedium"
+        android:textColor="?attr/colorPrimary"
+        tools:text="You" />
+
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/card_chat_bubble"
+        style="@style/Widget.LectureLens.Card.Elevated"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp">
+
+        <TextView
+            android:id="@+id/text_chat_body"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="12dp"
+            android:textAppearance="?attr/textAppearanceBodyMedium"
+            tools:text="What is the activity lifecycle?" />
+    </com.google.android.material.card.MaterialCardView>
+</LinearLayout>

@@ -1,6 +1,7 @@
 package com.lecturelens.ui.home;
 
 import android.os.Bundle;
+import android.text.InputFilter;
 import android.text.InputType;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -31,6 +32,9 @@ import dagger.hilt.android.AndroidEntryPoint;
  */
 @AndroidEntryPoint
 public class HomeFragment extends Fragment {
+
+    /** Matches FirestoreCloudShareRepository share-code alphabet (6 chars). */
+    private static final String SHARE_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
     @Nullable private FragmentHomeBinding binding;
     private HomeViewModel viewModel;
@@ -66,6 +70,7 @@ public class HomeFragment extends Fragment {
         viewModel.getImportError().observe(getViewLifecycleOwner(), error -> {
             if (error != null && binding != null) {
                 Snackbar.make(binding.getRoot(), error, Snackbar.LENGTH_LONG).show();
+                viewModel.consumeImportError();
             }
         });
         viewModel.getImportEvent().observe(getViewLifecycleOwner(), event -> {
@@ -77,6 +82,7 @@ public class HomeFragment extends Fragment {
                             Snackbar.LENGTH_LONG)
                     .setAction(R.string.action_open, v -> openLecture(event.lectureId))
                     .show();
+            viewModel.consumeImportEvent();
         });
         viewModel.getImportLoading().observe(getViewLifecycleOwner(), loading -> {
             if (binding == null) {
@@ -109,8 +115,30 @@ public class HomeFragment extends Fragment {
 
     private void showOpenSharedDialog() {
         final EditText input = new EditText(requireContext());
-        input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS);
+        input.setInputType(InputType.TYPE_CLASS_TEXT
+                | InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS
+                | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
         input.setHint(R.string.settings_share_code_hint);
+        input.setFilters(new InputFilter[]{
+                new InputFilter.AllCaps(),
+                new InputFilter.LengthFilter(6),
+                (source, start, end, dest, dstart, dend) -> {
+                    StringBuilder kept = new StringBuilder();
+                    for (int i = start; i < end; i++) {
+                        char c = Character.toUpperCase(source.charAt(i));
+                        if (SHARE_CODE_ALPHABET.indexOf(c) >= 0) {
+                            kept.append(c);
+                        }
+                    }
+                    // Reject / rewrite disallowed characters.
+                    String filtered = kept.toString();
+                    String original = source.subSequence(start, end).toString();
+                    if (filtered.equalsIgnoreCase(original)) {
+                        return null; // keep as-is (AllCaps handles case)
+                    }
+                    return filtered;
+                }
+        });
         input.setMaxLines(1);
         int pad = (int) (20 * getResources().getDisplayMetrics().density);
         FrameLayout container = new FrameLayout(requireContext());

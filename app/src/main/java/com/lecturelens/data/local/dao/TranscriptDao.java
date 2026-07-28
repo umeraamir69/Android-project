@@ -38,6 +38,9 @@ public interface TranscriptDao {
     @Query("SELECT * FROM transcript_segments WHERE lecture_id = :lectureId ORDER BY start_ms ASC")
     LiveData<List<TranscriptSegmentEntity>> observeSegments(long lectureId);
 
+    @Query("SELECT * FROM transcript_segments WHERE lecture_id = :lectureId ORDER BY start_ms ASC")
+    List<TranscriptSegmentEntity> getSegmentsSync(long lectureId);
+
     @Transaction
     default void replaceTranscript(TranscriptEntity transcript,
                                    List<TranscriptSegmentEntity> segments) {

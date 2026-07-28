@@ -1,5 +1,7 @@
 package com.lecturelens.data.remote;
 
+import com.lecturelens.data.remote.dto.GeminiEmbedRequest;
+import com.lecturelens.data.remote.dto.GeminiEmbedResponse;
 import com.lecturelens.data.remote.dto.GeminiGenerateRequest;
 import com.lecturelens.data.remote.dto.GeminiGenerateResponse;
 
@@ -20,4 +22,10 @@ public interface GeminiService {
             @Path(value = "model", encoded = true) String model,
             @Header("X-goog-api-key") String apiKey,
             @Body GeminiGenerateRequest request);
+
+    @POST("v1beta/models/{model}:embedContent")
+    Call<GeminiEmbedResponse> embedContent(
+            @Path(value = "model", encoded = true) String model,
+            @Header("X-goog-api-key") String apiKey,
+            @Body GeminiEmbedRequest request);
 }

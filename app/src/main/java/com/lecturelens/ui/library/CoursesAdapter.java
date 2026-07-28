@@ -25,7 +25,7 @@ public class CoursesAdapter extends ListAdapter<CourseSection, CoursesAdapter.Co
     public interface Listener extends LecturesAdapter.Listener {
         void onCourseToggled(long courseId);
 
-        void onRenameCourse(long courseId, @NonNull String currentName);
+        void onRenameCourse(long courseId, @NonNull String currentName, @NonNull String professor);
 
         void onDeleteCourse(long courseId, @NonNull String currentName);
 
@@ -76,6 +76,7 @@ public class CoursesAdapter extends ListAdapter<CourseSection, CoursesAdapter.Co
         private final Listener listener;
         private long courseId = -1L;
         @NonNull private String courseName = "";
+        @NonNull private String courseProfessor = "";
 
         CourseViewHolder(@NonNull ItemCourseHeaderBinding binding,
                          @NonNull Listener listener,
@@ -110,7 +111,7 @@ public class CoursesAdapter extends ListAdapter<CourseSection, CoursesAdapter.Co
             menu.setOnMenuItemClickListener(item -> {
                 int id = item.getItemId();
                 if (id == R.id.action_rename_course) {
-                    listener.onRenameCourse(courseId, courseName);
+                    listener.onRenameCourse(courseId, courseName, courseProfessor);
                     return true;
                 }
                 if (id == R.id.action_delete_course) {
@@ -130,6 +131,7 @@ public class CoursesAdapter extends ListAdapter<CourseSection, CoursesAdapter.Co
             Course course = section.getCourse();
             courseId = course.getId();
             courseName = course.getName();
+            courseProfessor = course.getProfessor();
             boolean realCourse = courseId != LibraryViewModel.UNCATEGORIZED_COURSE_ID;
             binding.buttonCourseMenu.setVisibility(realCourse ? View.VISIBLE : View.GONE);
             binding.textCourseName.setText(
@@ -137,6 +139,14 @@ public class CoursesAdapter extends ListAdapter<CourseSection, CoursesAdapter.Co
                             ? course.getName()
                             : binding.getRoot().getContext()
                                     .getString(R.string.library_uncategorized));
+            if (realCourse && !courseProfessor.isEmpty()) {
+                binding.textCourseProfessor.setVisibility(View.VISIBLE);
+                binding.textCourseProfessor.setText(
+                        binding.getRoot().getContext()
+                                .getString(R.string.course_professor_label, courseProfessor));
+            } else {
+                binding.textCourseProfessor.setVisibility(View.GONE);
+            }
             binding.viewCourseColor.setBackgroundTintList(
                     ColorStateList.valueOf(course.getColor()));
             int count = section.getLectures().size();

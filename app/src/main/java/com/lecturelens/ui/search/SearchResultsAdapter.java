@@ -3,6 +3,7 @@ package com.lecturelens.ui.search;
 import android.text.Html;
 import android.text.Spanned;
 import android.view.LayoutInflater;
+import android.view.View;
 import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
@@ -10,6 +11,8 @@ import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.ListAdapter;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.material.color.MaterialColors;
+import com.lecturelens.R;
 import com.lecturelens.data.local.SearchHit;
 import com.lecturelens.databinding.ItemSearchHeaderBinding;
 import com.lecturelens.databinding.ItemSearchHitBinding;
@@ -18,7 +21,7 @@ import com.lecturelens.ui.lecture.TranscriptAdapter;
 import java.util.Objects;
 
 /**
- * Track 5 — search results grouped by lecture (header + highlighted snippets).
+ * Search results grouped by lecture, with icons by source type.
  */
 public class SearchResultsAdapter
         extends ListAdapter<SearchResultsAdapter.ListItem, RecyclerView.ViewHolder> {
@@ -33,8 +36,6 @@ public class SearchResultsAdapter
     public abstract static class ListItem {
         abstract int viewType();
 
-        // Required so DiffUtil.ItemCallback<ListItem> satisfies Lint DiffUtilEquals
-        // (HeaderItem / HitItem already provide the real implementations).
         @Override
         public abstract boolean equals(Object o);
 
@@ -89,14 +90,17 @@ public class SearchResultsAdapter
                 return false;
             }
             HitItem that = (HitItem) o;
-            return hit.segmentId == that.hit.segmentId
+            return hit.lectureId == that.hit.lectureId
+                    && hit.segmentId == that.hit.segmentId
                     && hit.startMs == that.hit.startMs
+                    && Objects.equals(hit.sourceType, that.hit.sourceType)
                     && hit.snippet.equals(that.hit.snippet);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(hit.segmentId, hit.startMs, hit.snippet);
+            return Objects.hash(hit.lectureId, hit.segmentId, hit.startMs,
+                    hit.sourceType, hit.snippet);
         }
     }
 
@@ -110,8 +114,12 @@ public class SearchResultsAdapter
                                 == ((HeaderItem) newItem).lectureId;
                     }
                     if (oldItem instanceof HitItem && newItem instanceof HitItem) {
-                        return ((HitItem) oldItem).hit.segmentId
-                                == ((HitItem) newItem).hit.segmentId;
+                        SearchHit a = ((HitItem) oldItem).hit;
+                        SearchHit b = ((HitItem) newItem).hit;
+                        return a.lectureId == b.lectureId
+                                && a.segmentId == b.segmentId
+                                && Objects.equals(a.sourceType, b.sourceType)
+                                && a.startMs == b.startMs;
                     }
                     return false;
                 }
@@ -181,14 +189,61 @@ public class SearchResultsAdapter
 
         void bind(@NonNull HitItem item) {
             this.hit = item.hit;
-            binding.textHitTime.setText(TranscriptAdapter.formatTimestamp(hit.startMs));
+            String type = hit.sourceType != null ? hit.sourceType : SearchHit.SOURCE_TRANSCRIPT;
+            binding.imageHitType.setImageResource(iconFor(type));
+            int tint = MaterialColors.getColor(binding.getRoot(),
+                    androidx.appcompat.R.attr.colorPrimary);
+            binding.imageHitType.setColorFilter(tint);
+            String label = hit.sourceLabel != null && !hit.sourceLabel.isEmpty()
+                    ? hit.sourceLabel
+                    : labelFor(type);
+            binding.textHitType.setText(label);
+            if (hit.startMs >= 0 && SearchHit.SOURCE_TRANSCRIPT.equals(type)) {
+                binding.textHitTime.setVisibility(View.VISIBLE);
+                binding.textHitTime.setText(TranscriptAdapter.formatTimestamp(hit.startMs));
+            } else {
+                binding.textHitTime.setVisibility(View.GONE);
+            }
             binding.textHitSnippet.setText(highlightSnippet(hit.snippet));
+        }
+
+        private static int iconFor(@NonNull String type) {
+            switch (type) {
+                case SearchHit.SOURCE_CHAT:
+                    return R.drawable.ic_chat_24;
+                case SearchHit.SOURCE_NOTES:
+                case SearchHit.SOURCE_KEY_TERM:
+                case SearchHit.SOURCE_ACTION:
+                    return R.drawable.ic_notes_24;
+                default:
+                    return R.drawable.ic_mic_24;
+            }
+        }
+
+        @NonNull
+        private static String labelFor(@NonNull String type) {
+            switch (type) {
+                case SearchHit.SOURCE_CHAT:
+                    return "Ask AI";
+                case SearchHit.SOURCE_NOTES:
+                    return "Notes";
+                case SearchHit.SOURCE_KEY_TERM:
+                    return "Key term";
+                case SearchHit.SOURCE_ACTION:
+                    return "Action item";
+                default:
+                    return "Transcript";
+            }
         }
     }
 
     @NonNull
     static Spanned highlightSnippet(@NonNull String snippet) {
-        // FTS snippet() wraps matches in <b>…</b>
-        return Html.fromHtml(snippet, Html.FROM_HTML_MODE_LEGACY);
+        String safe = snippet == null ? "" : snippet;
+        if (!safe.contains("<b>")) {
+            // Escape HTML for LIKE hits, keep plain text readable.
+            safe = Html.escapeHtml(safe);
+        }
+        return Html.fromHtml(safe, Html.FROM_HTML_MODE_LEGACY);
     }
 }

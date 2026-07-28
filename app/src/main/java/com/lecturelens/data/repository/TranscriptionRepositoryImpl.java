@@ -18,6 +18,7 @@ import com.lecturelens.data.remote.PipelineErrorStore;
 import com.lecturelens.data.remote.RemoteCallHelper;
 import com.lecturelens.data.remote.SpeechToTextService;
 import com.lecturelens.data.remote.SttResponseMapper;
+import com.lecturelens.data.remote.UsageLimiter;
 import com.lecturelens.data.remote.dto.SttAudioContent;
 import com.lecturelens.data.remote.dto.SttOperation;
 import com.lecturelens.data.remote.dto.SttRecognizeRequest;
@@ -76,6 +77,7 @@ public class TranscriptionRepositoryImpl implements TranscriptionRepository {
     private final TranscriptEntityMapper mapper;
     private final PipelineErrorStore errorStore;
     private final GcsAudioUploader gcsUploader;
+    private final UsageLimiter usageLimiter;
 
     @Inject
     public TranscriptionRepositoryImpl(@NonNull SpeechToTextService speechService,
@@ -85,7 +87,8 @@ public class TranscriptionRepositoryImpl implements TranscriptionRepository {
                                        @NonNull LectureRepository lectureRepository,
                                        @NonNull TranscriptEntityMapper mapper,
                                        @NonNull PipelineErrorStore errorStore,
-                                       @NonNull GcsAudioUploader gcsUploader) {
+                                       @NonNull GcsAudioUploader gcsUploader,
+                                       @NonNull UsageLimiter usageLimiter) {
         this.speechService = speechService;
         this.apiKeys = apiKeys;
         this.transcriptDao = transcriptDao;
@@ -94,6 +97,7 @@ public class TranscriptionRepositoryImpl implements TranscriptionRepository {
         this.mapper = mapper;
         this.errorStore = errorStore;
         this.gcsUploader = gcsUploader;
+        this.usageLimiter = usageLimiter;
     }
 
     @NonNull
@@ -109,6 +113,12 @@ public class TranscriptionRepositoryImpl implements TranscriptionRepository {
         long lectureId = lectureDao.findIdByAudioPath(audio.getAbsolutePath());
         if (lectureId <= 0L) {
             return fail(-1L, "No lecture row found for this audio file.");
+        }
+
+        // Rough duration estimate from AAC bitrate (~32kbps mono) for quota.
+        long estMs = Math.max(1_000L, audio.length() * 8L / 32L);
+        if (!usageLimiter.canTranscribeAudio(estMs)) {
+            return fail(lectureId, "Daily cloud transcription limit reached. Try again tomorrow or switch to On-device mode in Settings.");
         }
 
         lectureRepository.updateStatus(lectureId, LectureStatus.TRANSCRIBING);
@@ -156,6 +166,7 @@ public class TranscriptionRepositoryImpl implements TranscriptionRepository {
 
             TranscriptEntity entity = mapper.toEntity(transcript);
             transcriptDao.replaceTranscript(entity, mapper.toSegmentEntities(lectureId, segments));
+            usageLimiter.recordAudio(estMs);
             lectureRepository.updateStatus(lectureId, LectureStatus.TRANSCRIBED);
             errorStore.clear(lectureId);
             return Result.success(transcript);

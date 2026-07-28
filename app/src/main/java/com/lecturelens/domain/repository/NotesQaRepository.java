@@ -1,21 +1,29 @@
 package com.lecturelens.domain.repository;
 
 import androidx.annotation.NonNull;
+import androidx.lifecycle.LiveData;
+
+import com.lecturelens.domain.model.ChatMessage;
+import com.lecturelens.domain.model.QaAnswer;
+
+import java.util.List;
 
 /**
- * Ask Gemini questions grounded only in a lecture's notes + transcript.
+ * Ask Gemini questions grounded in a lecture's notes + transcript (RAG when indexed).
+ * Chat turns are persisted per lecture.
  */
 public interface NotesQaRepository {
 
     interface Callback {
-        void onAnswer(@NonNull String answer);
+        void onAnswer(@NonNull QaAnswer answer);
 
         void onError(@NonNull String message);
     }
 
-    /**
-     * Blocking — call from a background thread.
-     * Answers must come only from this lecture's material.
-     */
     void ask(long lectureId, @NonNull String question, @NonNull Callback callback);
+
+    @NonNull
+    LiveData<List<ChatMessage>> observeChat(long lectureId);
+
+    void clearChat(long lectureId);
 }

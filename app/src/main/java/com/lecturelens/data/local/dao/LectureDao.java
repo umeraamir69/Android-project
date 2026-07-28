@@ -49,6 +49,9 @@ public interface LectureDao {
     @Query("SELECT * FROM lectures ORDER BY date DESC")
     LiveData<List<LectureEntity>> observeAll();
 
+    @Query("SELECT * FROM lectures ORDER BY date DESC")
+    List<LectureEntity> getAllSync();
+
     @Query("SELECT * FROM lectures WHERE course_id = :courseId ORDER BY date DESC")
     LiveData<List<LectureEntity>> observeByCourse(long courseId);
 

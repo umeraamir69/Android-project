@@ -64,8 +64,8 @@ public class LectureViewFragment extends Fragment {
     private boolean initialSeekApplied;
     @Nullable private String lastShownPipelineError;
 
-    private final ActivityResultLauncher<String> handoutPicker =
-            registerForActivityResult(new ActivityResultContracts.GetContent(), this::onHandoutPicked);
+    private final ActivityResultLauncher<String[]> handoutPicker =
+            registerForActivityResult(new ActivityResultContracts.OpenDocument(), this::onHandoutPicked);
 
     @Nullable
     @Override
@@ -123,7 +123,13 @@ public class LectureViewFragment extends Fragment {
                 return true;
             }
             if (id == R.id.menu_add_handout) {
-                handoutPicker.launch("image/*");
+                handoutPicker.launch(new String[]{
+                        "image/*",
+                        "application/pdf",
+                        "text/plain",
+                        "application/msword",
+                        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                });
                 return true;
             }
             return false;
@@ -247,6 +253,12 @@ public class LectureViewFragment extends Fragment {
             return;
         }
         try {
+            // Persist permission when available (OpenDocument).
+            try {
+                requireContext().getContentResolver().takePersistableUriPermission(
+                        uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            } catch (SecurityException ignored) {
+            }
             File dir = new File(requireContext().getFilesDir(), "handouts");
             if (!dir.exists() && !dir.mkdirs()) {
                 Snackbar.make(binding.getRoot(), R.string.handout_pick_failed, Snackbar.LENGTH_LONG)
@@ -255,10 +267,10 @@ public class LectureViewFragment extends Fragment {
             }
             String mime = requireContext().getContentResolver().getType(uri);
             if (mime == null || mime.isEmpty()) {
-                mime = "image/jpeg";
+                mime = "application/octet-stream";
             }
-            String ext = mime.contains("png") ? ".png"
-                    : mime.contains("webp") ? ".webp" : ".jpg";
+            String displayName = queryDisplayName(uri);
+            String ext = extensionForMime(mime, displayName);
             File out = new File(dir, "handout_" + viewModel.getLectureId()
                     + "_" + System.currentTimeMillis() + ext);
             try (InputStream in = requireContext().getContentResolver().openInputStream(uri);
@@ -272,13 +284,59 @@ public class LectureViewFragment extends Fragment {
                     os.write(buf, 0, n);
                 }
             }
-            viewModel.addHandoutImage(out, mime);
-            // Jump to Notes so the user sees Ask AI + handout context.
+            viewModel.addHandoutFile(out, mime, displayName);
             binding.pager.setCurrentItem(2, true);
         } catch (Exception e) {
             Snackbar.make(binding.getRoot(), R.string.handout_pick_failed, Snackbar.LENGTH_LONG)
                     .show();
         }
+    }
+
+    @NonNull
+    private String queryDisplayName(@NonNull Uri uri) {
+        String fallback = "handout";
+        try (android.database.Cursor cursor = requireContext().getContentResolver().query(
+                uri, new String[]{android.provider.OpenableColumns.DISPLAY_NAME},
+                null, null, null)) {
+            if (cursor != null && cursor.moveToFirst()) {
+                String name = cursor.getString(0);
+                if (name != null && !name.trim().isEmpty()) {
+                    return name.trim();
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        return fallback;
+    }
+
+    @NonNull
+    private static String extensionForMime(@NonNull String mime, @NonNull String displayName) {
+        String lower = displayName.toLowerCase(java.util.Locale.US);
+        if (lower.contains(".")) {
+            return lower.substring(lower.lastIndexOf('.'));
+        }
+        if (mime.contains("png")) {
+            return ".png";
+        }
+        if (mime.contains("webp")) {
+            return ".webp";
+        }
+        if (mime.contains("pdf")) {
+            return ".pdf";
+        }
+        if (mime.contains("wordprocessingml") || mime.contains("docx")) {
+            return ".docx";
+        }
+        if (mime.contains("msword")) {
+            return ".doc";
+        }
+        if (mime.startsWith("text/")) {
+            return ".txt";
+        }
+        if (mime.startsWith("image/")) {
+            return ".jpg";
+        }
+        return ".bin";
     }
 
     private void showShareSheet() {

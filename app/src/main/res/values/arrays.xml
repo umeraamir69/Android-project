@@ -39,4 +39,15 @@
         <item>pt-BR</item>
         <item>ur-PK</item>
     </string-array>
+
+    <string-array name="processing_mode_labels">
+        <item>Cloud (Google STT + Gemini)</item>
+        <item>On-device (privacy)</item>
+        <item>Auto (on-device when offline)</item>
+    </string-array>
+    <string-array name="processing_mode_values">
+        <item>cloud</item>
+        <item>on_device</item>
+        <item>auto</item>
+    </string-array>
 </resources>

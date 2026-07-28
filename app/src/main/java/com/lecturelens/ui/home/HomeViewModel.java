@@ -92,6 +92,15 @@ public class HomeViewModel extends BaseViewModel<HomeDashboard> {
         return importLoading;
     }
 
+    /** Clear after the Snackbar is shown so returning to Home doesn't replay it. */
+    public void consumeImportError() {
+        importError.setValue(null);
+    }
+
+    public void consumeImportEvent() {
+        importEvent.setValue(null);
+    }
+
     public void importSharedNotes(@Nullable String code) {
         importLoading.setValue(true);
         importError.setValue(null);

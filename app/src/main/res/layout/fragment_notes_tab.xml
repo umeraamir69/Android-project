@@ -11,7 +11,7 @@
         android:layout_height="0dp"
         android:clipToPadding="false"
         android:fillViewport="true"
-        app:layout_constraintBottom_toTopOf="@id/card_answer"
+        app:layout_constraintBottom_toTopOf="@id/chip_citations"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
@@ -28,7 +28,7 @@
                 android:layout_height="wrap_content"
                 android:nestedScrollingEnabled="false"
                 android:paddingVertical="8dp"
-                tools:itemCount="6"
+                tools:itemCount="4"
                 tools:listitem="@layout/item_notes_row" />
 
             <TextView
@@ -41,15 +41,60 @@
                 android:textAppearance="?attr/textAppearanceTitleSmall"
                 android:visibility="gone" />
 
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/recycler_handouts"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:nestedScrollingEnabled="false"
+                android:paddingTop="4dp"
+                android:visibility="gone"
+                tools:itemCount="2"
+                tools:listitem="@layout/item_handout" />
+
+            <LinearLayout
+                android:id="@+id/chat_header_row"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="16dp"
+                android:paddingTop="12dp">
+
+                <TextView
+                    android:id="@+id/text_chat_header"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/notes_chat_header"
+                    android:textAppearance="?attr/textAppearanceTitleSmall" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/button_clear_chat"
+                    style="?attr/materialButtonOutlinedStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/notes_clear_chat"
+                    android:visibility="gone" />
+            </LinearLayout>
+
             <TextView
-                android:id="@+id/text_handouts"
+                android:id="@+id/text_chat_empty"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:paddingHorizontal="16dp"
                 android:paddingTop="6dp"
-                android:textAppearance="?attr/textAppearanceBodyMedium"
-                android:textColor="?attr/colorOnSurfaceVariant"
-                android:visibility="gone" />
+                android:text="@string/notes_chat_empty"
+                android:textAppearance="?attr/textAppearanceBodySmall"
+                android:textColor="?attr/colorOnSurfaceVariant" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/recycler_chat"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:nestedScrollingEnabled="false"
+                android:paddingTop="4dp"
+                tools:itemCount="3"
+                tools:listitem="@layout/item_chat_message" />
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 
@@ -64,41 +109,17 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <com.google.android.material.card.MaterialCardView
-        android:id="@+id/card_answer"
-        style="@style/Widget.LectureLens.Card.Elevated"
+    <com.google.android.material.chip.ChipGroup
+        android:id="@+id/chip_citations"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginHorizontal="12dp"
-        android:layout_marginBottom="8dp"
+        android:layout_marginBottom="4dp"
         android:visibility="gone"
-        app:cardBackgroundColor="?attr/colorSurfaceContainerLowest"
         app:layout_constraintBottom_toTopOf="@id/ask_bar"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        tools:visibility="visible">
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="12dp">
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/notes_ai_answer_label"
-                android:textAppearance="?attr/textAppearanceLabelLarge" />
-
-            <TextView
-                android:id="@+id/text_ai_answer"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
-                android:textAppearance="?attr/textAppearanceBodyMedium"
-                tools:text="Answer grounded in notes…" />
-        </LinearLayout>
-    </com.google.android.material.card.MaterialCardView>
+        app:singleLine="false" />
 
     <LinearLayout
         android:id="@+id/ask_bar"

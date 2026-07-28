@@ -1,6 +1,7 @@
 package com.lecturelens.data.local.dao;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.lifecycle.LiveData;
 import androidx.room.Dao;
 import androidx.room.Insert;
@@ -24,4 +25,7 @@ public interface HandoutDao {
 
     @Query("DELETE FROM handouts WHERE id = :id")
     void deleteById(long id);
+
+    @Query("UPDATE handouts SET remote_url = :remoteUrl WHERE id = :id")
+    void updateRemoteUrl(long id, @Nullable String remoteUrl);
 }

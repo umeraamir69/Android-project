@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginHorizontal="12dp"
+    android:layout_marginVertical="4dp"
+    app:cardElevation="0dp"
+    app:strokeWidth="1dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:padding="10dp">
+
+        <ImageView
+            android:id="@+id/image_handout_thumb"
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:background="?attr/colorSurfaceContainerHighest"
+            android:contentDescription="@string/cd_handout_preview"
+            android:scaleType="centerCrop"
+            tools:src="@drawable/ic_notes_24" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/text_handout_name"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textAppearance="?attr/textAppearanceTitleSmall"
+                tools:text="quiz_week3.pdf" />
+
+            <TextView
+                android:id="@+id/text_handout_meta"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:ellipsize="end"
+                android:maxLines="2"
+                android:textAppearance="?attr/textAppearanceBodySmall"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                tools:text="PDF · synced to cloud" />
+        </LinearLayout>
+
+        <ImageButton
+            android:id="@+id/button_handout_open"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/action_open_handout"
+            android:src="@drawable/ic_folder_shared_24"
+            app:tint="?attr/colorPrimary" />
+
+        <ImageButton
+            android:id="@+id/button_handout_delete"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/action_delete"
+            android:src="@drawable/ic_more_vert_24"
+            app:tint="?attr/colorOnSurfaceVariant" />
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>

@@ -1,6 +1,8 @@
 package com.lecturelens.di;
 
+import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.storage.FirebaseStorage;
 import com.lecturelens.data.repository.FirestoreCloudShareRepository;
 import com.lecturelens.domain.repository.CloudShareRepository;
 
@@ -20,6 +22,18 @@ public abstract class FirebaseModule {
     @Singleton
     static FirebaseFirestore provideFirestore() {
         return FirebaseFirestore.getInstance();
+    }
+
+    @Provides
+    @Singleton
+    static FirebaseAuth provideFirebaseAuth() {
+        return FirebaseAuth.getInstance();
+    }
+
+    @Provides
+    @Singleton
+    static FirebaseStorage provideFirebaseStorage() {
+        return FirebaseStorage.getInstance();
     }
 
     @Binds

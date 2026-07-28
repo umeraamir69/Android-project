@@ -12,11 +12,14 @@ import com.lecturelens.core.AppExecutors;
 import com.lecturelens.core.BaseViewModel;
 import com.lecturelens.data.prefs.UserSettingsStore;
 import com.lecturelens.data.remote.PipelineErrorStore;
+import com.lecturelens.domain.model.ChatMessage;
 import com.lecturelens.domain.model.Course;
 import com.lecturelens.domain.model.Handout;
 import com.lecturelens.domain.model.Lecture;
 import com.lecturelens.domain.model.LectureStatus;
 import com.lecturelens.domain.model.Notes;
+import com.lecturelens.domain.model.QaAnswer;
+import com.lecturelens.domain.model.RagCitation;
 import com.lecturelens.domain.model.TranscriptSegment;
 import com.lecturelens.domain.repository.ConsentGate;
 import com.lecturelens.domain.repository.CourseRepository;
@@ -64,6 +67,7 @@ public class LectureViewModel extends BaseViewModel<LectureDetail> {
     private final LiveData<Notes> notesLive;
     private final LiveData<List<Course>> coursesLive;
     private final LiveData<List<Handout>> handoutsLive;
+    private final LiveData<List<ChatMessage>> chatLive;
 
     private final Observer<Lecture> lectureObserver;
     private final Observer<List<TranscriptSegment>> segmentsObserver;
@@ -81,6 +85,7 @@ public class LectureViewModel extends BaseViewModel<LectureDetail> {
     private final MutableLiveData<String> cloudShareCode = new MutableLiveData<>();
     private final MutableLiveData<String> messageEvent = new MutableLiveData<>();
     private final MutableLiveData<String> aiAnswer = new MutableLiveData<>();
+    private final MutableLiveData<List<RagCitation>> aiCitations = new MutableLiveData<>(Collections.emptyList());
     private final MutableLiveData<Boolean> aiLoading = new MutableLiveData<>(false);
 
     private long pendingSeekMs = -1L;
@@ -121,6 +126,7 @@ public class LectureViewModel extends BaseViewModel<LectureDetail> {
         notesLive = llmRepository.observeNotes(lectureId);
         coursesLive = courseRepository.observeAll();
         handoutsLive = handoutRepository.observeHandouts(lectureId);
+        chatLive = notesQaRepository.observeChat(lectureId);
 
         lectureObserver = value -> {
             lectureResolved = true;
@@ -168,6 +174,11 @@ public class LectureViewModel extends BaseViewModel<LectureDetail> {
     }
 
     @NonNull
+    public LiveData<List<RagCitation>> getAiCitations() {
+        return aiCitations;
+    }
+
+    @NonNull
     public LiveData<Boolean> getAiLoading() {
         return aiLoading;
     }
@@ -177,14 +188,20 @@ public class LectureViewModel extends BaseViewModel<LectureDetail> {
         return handoutsLive;
     }
 
+    @NonNull
+    public LiveData<List<ChatMessage>> getChatMessages() {
+        return chatLive;
+    }
+
     public void askAboutNotes(@Nullable String question) {
         aiLoading.setValue(true);
         notesQaRepository.ask(lectureId, question != null ? question : "",
                 new NotesQaRepository.Callback() {
                     @Override
-                    public void onAnswer(@NonNull String answer) {
+                    public void onAnswer(@NonNull QaAnswer answer) {
                         aiLoading.postValue(false);
-                        aiAnswer.postValue(answer);
+                        aiAnswer.postValue(answer.text);
+                        aiCitations.postValue(answer.citations);
                     }
 
                     @Override
@@ -195,12 +212,27 @@ public class LectureViewModel extends BaseViewModel<LectureDetail> {
                 });
     }
 
-    public void addHandoutImage(@NonNull File imageFile, @NonNull String mimeType) {
-        handoutRepository.addHandoutImage(lectureId, imageFile, mimeType,
+    public void clearChat() {
+        notesQaRepository.clearChat(lectureId);
+        aiAnswer.setValue(null);
+        aiCitations.setValue(Collections.emptyList());
+    }
+
+    public void onCitationTapped(long startMs) {
+        onSegmentTapped(startMs);
+    }
+
+    public void addHandoutFile(@NonNull File file,
+                               @NonNull String mimeType,
+                               @Nullable String displayName) {
+        handoutRepository.addHandoutFile(lectureId, file, mimeType, displayName,
                 new HandoutRepository.HandoutCallback() {
                     @Override
                     public void onAdded(@NonNull Handout handout) {
-                        messageEvent.postValue("Handout scanned and saved");
+                        String msg = handout.remoteUrl != null
+                                ? "Handout saved and uploading to cloud…"
+                                : "Handout scanned and saved";
+                        messageEvent.postValue(msg);
                     }
 
                     @Override
@@ -208,6 +240,14 @@ public class LectureViewModel extends BaseViewModel<LectureDetail> {
                         messageEvent.postValue(message);
                     }
                 });
+    }
+
+    public void addHandoutImage(@NonNull File imageFile, @NonNull String mimeType) {
+        addHandoutFile(imageFile, mimeType, imageFile.getName());
+    }
+
+    public void deleteHandout(long handoutId) {
+        handoutRepository.deleteHandout(handoutId);
     }
 
     public long getLectureId() {

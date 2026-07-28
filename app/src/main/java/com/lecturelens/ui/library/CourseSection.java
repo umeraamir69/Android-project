@@ -46,6 +46,7 @@ public final class CourseSection {
         if (expanded != other.expanded
                 || course.getId() != other.course.getId()
                 || !course.getName().equals(other.course.getName())
+                || !course.getProfessor().equals(other.course.getProfessor())
                 || course.getColor() != other.course.getColor()
                 || lectures.size() != other.lectures.size()) {
             return false;

@@ -1,5 +1,7 @@
 package com.lecturelens.ui.lecture;
 
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -8,29 +10,38 @@ import android.view.inputmethod.EditorInfo;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.content.FileProvider;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
+import com.google.android.material.chip.Chip;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.snackbar.Snackbar;
 import com.lecturelens.R;
 import com.lecturelens.core.UiState;
+import com.lecturelens.core.VectorMath;
 import com.lecturelens.databinding.FragmentNotesTabBinding;
+import com.lecturelens.domain.model.ChatMessage;
 import com.lecturelens.domain.model.Handout;
 import com.lecturelens.domain.model.Notes;
-import com.lecturelens.ui.util.MarkdownSpans;
+import com.lecturelens.domain.model.RagCitation;
 
+import java.io.File;
 import java.util.Collections;
 import java.util.List;
 
 import dagger.hilt.android.AndroidEntryPoint;
 
-/** Notes tab: study notes + Ask AI (grounded) + handout OCR snippets. */
+/** Notes tab: study notes + handouts media + full Ask AI chat. */
 @AndroidEntryPoint
-public class NotesTabFragment extends Fragment {
+public class NotesTabFragment extends Fragment implements HandoutsAdapter.Listener {
 
     @Nullable private FragmentNotesTabBinding binding;
     private LectureViewModel viewModel;
-    private NotesAdapter adapter;
+    private NotesAdapter notesAdapter;
+    private HandoutsAdapter handoutsAdapter;
+    private ChatMessagesAdapter chatAdapter;
 
     @Nullable
     @Override
@@ -45,11 +56,27 @@ public class NotesTabFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         viewModel = new ViewModelProvider(requireParentFragment()).get(LectureViewModel.class);
-        adapter = new NotesAdapter();
+
+        notesAdapter = new NotesAdapter();
         binding.recyclerNotes.setLayoutManager(new LinearLayoutManager(requireContext()));
-        binding.recyclerNotes.setAdapter(adapter);
+        binding.recyclerNotes.setAdapter(notesAdapter);
+
+        handoutsAdapter = new HandoutsAdapter(this);
+        binding.recyclerHandouts.setLayoutManager(new LinearLayoutManager(requireContext()));
+        binding.recyclerHandouts.setAdapter(handoutsAdapter);
+
+        chatAdapter = new ChatMessagesAdapter();
+        binding.recyclerChat.setLayoutManager(new LinearLayoutManager(requireContext()));
+        binding.recyclerChat.setAdapter(chatAdapter);
 
         binding.buttonAsk.setOnClickListener(v -> submitQuestion());
+        binding.buttonClearChat.setOnClickListener(v ->
+                new MaterialAlertDialogBuilder(requireContext())
+                        .setMessage(R.string.notes_clear_chat_confirm)
+                        .setNegativeButton(R.string.action_cancel, null)
+                        .setPositiveButton(R.string.notes_clear_chat, (d, w) ->
+                                viewModel.clearChat())
+                        .show());
         binding.editAsk.setOnEditorActionListener((v, actionId, event) -> {
             if (actionId == EditorInfo.IME_ACTION_SEND) {
                 submitQuestion();
@@ -59,13 +86,7 @@ public class NotesTabFragment extends Fragment {
         });
 
         viewModel.getUiState().observe(getViewLifecycleOwner(), this::render);
-        viewModel.getAiAnswer().observe(getViewLifecycleOwner(), answer -> {
-            if (binding == null || answer == null) {
-                return;
-            }
-            binding.cardAnswer.setVisibility(View.VISIBLE);
-            binding.textAiAnswer.setText(MarkdownSpans.fromLiteMarkdown(answer));
-        });
+        viewModel.getAiCitations().observe(getViewLifecycleOwner(), this::renderCitations);
         viewModel.getAiLoading().observe(getViewLifecycleOwner(), loading -> {
             if (binding == null) {
                 return;
@@ -76,6 +97,30 @@ public class NotesTabFragment extends Fragment {
             binding.editAsk.setEnabled(!busy);
         });
         viewModel.getHandouts().observe(getViewLifecycleOwner(), this::renderHandouts);
+        viewModel.getChatMessages().observe(getViewLifecycleOwner(), this::renderChat);
+    }
+
+    private void renderCitations(@Nullable List<RagCitation> citations) {
+        if (binding == null) {
+            return;
+        }
+        binding.chipCitations.removeAllViews();
+        if (citations == null || citations.isEmpty()) {
+            binding.chipCitations.setVisibility(View.GONE);
+            return;
+        }
+        binding.chipCitations.setVisibility(View.VISIBLE);
+        int i = 1;
+        for (RagCitation c : citations) {
+            Chip chip = new Chip(requireContext());
+            chip.setText("[" + i + "] " + VectorMath.formatTimestamp(c.startMs));
+            chip.setClickable(true);
+            chip.setCheckable(false);
+            final long seek = c.startMs;
+            chip.setOnClickListener(v -> viewModel.onCitationTapped(seek));
+            binding.chipCitations.addView(chip);
+            i++;
+        }
     }
 
     private void submitQuestion() {
@@ -83,7 +128,12 @@ public class NotesTabFragment extends Fragment {
             return;
         }
         CharSequence q = binding.editAsk.getText();
-        viewModel.askAboutNotes(q != null ? q.toString() : "");
+        String question = q != null ? q.toString().trim() : "";
+        if (question.isEmpty()) {
+            return;
+        }
+        binding.editAsk.setText("");
+        viewModel.askAboutNotes(question);
     }
 
     private void render(@NonNull UiState<LectureDetail> state) {
@@ -102,7 +152,7 @@ public class NotesTabFragment extends Fragment {
                 getString(R.string.lecture_notes_summary),
                 getString(R.string.lecture_notes_key_terms),
                 getString(R.string.lecture_notes_action_items));
-        adapter.submitList(rows);
+        notesAdapter.submitList(rows);
         boolean empty = rows.isEmpty();
         binding.emptyState.getRoot().setVisibility(empty ? View.VISIBLE : View.GONE);
         if (empty) {
@@ -119,24 +169,61 @@ public class NotesTabFragment extends Fragment {
         if (binding == null) {
             return;
         }
-        if (handouts == null || handouts.isEmpty()) {
-            binding.textHandoutsHeader.setVisibility(View.GONE);
-            binding.textHandouts.setVisibility(View.GONE);
+        boolean has = handouts != null && !handouts.isEmpty();
+        binding.textHandoutsHeader.setVisibility(has ? View.VISIBLE : View.GONE);
+        binding.recyclerHandouts.setVisibility(has ? View.VISIBLE : View.GONE);
+        handoutsAdapter.submitList(handouts != null ? handouts : Collections.emptyList());
+    }
+
+    private void renderChat(@Nullable List<ChatMessage> messages) {
+        if (binding == null) {
             return;
         }
-        StringBuilder sb = new StringBuilder();
-        int i = 1;
-        for (Handout h : handouts) {
-            sb.append(i++).append(". ");
-            String snippet = h.extractedText.trim();
-            if (snippet.length() > 280) {
-                snippet = snippet.substring(0, 280) + "…";
-            }
-            sb.append(snippet).append("\n\n");
+        List<ChatMessage> list = messages != null ? messages : Collections.emptyList();
+        chatAdapter.submitList(list);
+        boolean empty = list.isEmpty();
+        binding.textChatEmpty.setVisibility(empty ? View.VISIBLE : View.GONE);
+        binding.buttonClearChat.setVisibility(empty ? View.GONE : View.VISIBLE);
+        if (!empty) {
+            binding.scrollNotes.post(() ->
+                    binding.scrollNotes.fullScroll(View.FOCUS_DOWN));
         }
-        binding.textHandoutsHeader.setVisibility(View.VISIBLE);
-        binding.textHandouts.setVisibility(View.VISIBLE);
-        binding.textHandouts.setText(MarkdownSpans.fromLiteMarkdown(sb.toString().trim()));
+    }
+
+    @Override
+    public void onOpen(@NonNull Handout handout) {
+        File file = new File(handout.localPath);
+        if (!file.exists()) {
+            if (handout.remoteUrl != null && !handout.remoteUrl.isEmpty()) {
+                startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(handout.remoteUrl)));
+                return;
+            }
+            Snackbar.make(requireView(), R.string.handout_missing_file, Snackbar.LENGTH_LONG).show();
+            return;
+        }
+        try {
+            Uri uri = FileProvider.getUriForFile(
+                    requireContext(),
+                    requireContext().getPackageName() + ".fileprovider",
+                    file);
+            Intent intent = new Intent(Intent.ACTION_VIEW);
+            intent.setDataAndType(uri,
+                    handout.mimeType.isEmpty() ? "*/*" : handout.mimeType);
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            startActivity(Intent.createChooser(intent, getString(R.string.action_open_handout)));
+        } catch (Exception e) {
+            Snackbar.make(requireView(), R.string.handout_pick_failed, Snackbar.LENGTH_LONG).show();
+        }
+    }
+
+    @Override
+    public void onDelete(@NonNull Handout handout) {
+        new MaterialAlertDialogBuilder(requireContext())
+                .setMessage(getString(R.string.handout_delete_confirm, handout.displayName))
+                .setNegativeButton(R.string.action_cancel, null)
+                .setPositiveButton(R.string.action_delete, (d, w) ->
+                        viewModel.deleteHandout(handout.id))
+                .show();
     }
 
     @Override

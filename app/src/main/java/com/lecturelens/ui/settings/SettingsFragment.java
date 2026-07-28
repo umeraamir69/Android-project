@@ -11,6 +11,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.navigation.NavOptions;
 import androidx.navigation.fragment.NavHostFragment;
 
 import com.google.android.material.snackbar.Snackbar;
@@ -47,18 +48,29 @@ public class SettingsFragment extends Fragment {
         String[] themeValues = getResources().getStringArray(R.array.theme_mode_values);
         String[] langLabels = getResources().getStringArray(R.array.stt_language_labels);
         String[] langValues = getResources().getStringArray(R.array.stt_language_values);
+        String[] modeLabels = getResources().getStringArray(R.array.processing_mode_labels);
+        String[] modeValues = getResources().getStringArray(R.array.processing_mode_values);
 
         binding.inputTheme.setAdapter(new ArrayAdapter<>(
                 requireContext(), android.R.layout.simple_list_item_1, themeLabels));
         binding.inputLanguage.setAdapter(new ArrayAdapter<>(
                 requireContext(), android.R.layout.simple_list_item_1, langLabels));
+        binding.inputProcessing.setAdapter(new ArrayAdapter<>(
+                requireContext(), android.R.layout.simple_list_item_1, modeLabels));
 
         viewModel.getState().observe(getViewLifecycleOwner(), state -> {
             if (state == null || stateApplied || binding == null) {
                 return;
             }
             stateApplied = true;
-            binding.textEmail.setText(getString(R.string.settings_signed_in_as, state.email));
+            String label = state.email.isEmpty() ? "—" : state.email;
+            binding.textEmail.setText(getString(R.string.settings_signed_in_as, label));
+            binding.editUsername.setText(state.profile.username);
+            binding.editFullName.setText(state.profile.fullName);
+            binding.editDob.setText(state.profile.dateOfBirth);
+            binding.editUniversity.setText(state.profile.university);
+            binding.editProgram.setText(state.profile.program);
+            binding.editStudentId.setText(state.profile.studentId);
             binding.editApiKey.setText(state.apiKey);
             binding.switchConsent.setChecked(state.consent);
             binding.switchConsent.setOnCheckedChangeListener(
@@ -79,6 +91,14 @@ public class SettingsFragment extends Fragment {
                     viewModel.setSttLanguage(langValues[position]);
                 }
             });
+
+            int modeIndex = indexOf(modeValues, state.processingMode, 0);
+            binding.inputProcessing.setText(modeLabels[modeIndex], false);
+            binding.inputProcessing.setOnItemClickListener((parent, v, position, id) -> {
+                if (position >= 0 && position < modeValues.length) {
+                    viewModel.setProcessingMode(modeValues[position]);
+                }
+            });
         });
 
         viewModel.getApiKeyError().observe(getViewLifecycleOwner(), error -> {
@@ -93,13 +113,44 @@ public class SettingsFragment extends Fragment {
             }
         });
 
+        viewModel.getProfileSaved().observe(getViewLifecycleOwner(), saved -> {
+            if (Boolean.TRUE.equals(saved) && binding != null) {
+                Snackbar.make(binding.getRoot(), R.string.settings_profile_saved,
+                        Snackbar.LENGTH_SHORT).show();
+                viewModel.ackProfileSaved();
+            }
+        });
+
+        viewModel.getSignedOut().observe(getViewLifecycleOwner(), out -> {
+            if (Boolean.TRUE.equals(out)) {
+                NavOptions options = new NavOptions.Builder()
+                        .setPopUpTo(R.id.nav_graph, true)
+                        .build();
+                NavHostFragment.findNavController(this)
+                        .navigate(R.id.login, null, options);
+            }
+        });
+
+        binding.buttonSaveProfile.setOnClickListener(v -> viewModel.saveProfile(
+                textOf(binding.editUsername),
+                textOf(binding.editFullName),
+                textOf(binding.editDob),
+                textOf(binding.editUniversity),
+                textOf(binding.editProgram),
+                textOf(binding.editStudentId)));
+
         binding.buttonSaveKey.setOnClickListener(v -> viewModel.saveApiKey(
-                binding.editApiKey.getText() != null
-                        ? binding.editApiKey.getText().toString()
-                        : null));
+                textOf(binding.editApiKey)));
+
+        binding.buttonSignOut.setOnClickListener(v -> viewModel.signOut());
 
         binding.buttonThemeShowcase.setOnClickListener(v ->
                 startActivity(new Intent(requireContext(), ThemeShowcaseActivity.class)));
+    }
+
+    @Nullable
+    private static String textOf(@Nullable android.widget.EditText edit) {
+        return edit != null && edit.getText() != null ? edit.getText().toString() : null;
     }
 
     private static int indexOf(@NonNull String[] values, @Nullable String target, int fallback) {

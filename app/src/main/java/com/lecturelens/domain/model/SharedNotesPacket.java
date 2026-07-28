@@ -16,6 +16,10 @@ public final class SharedNotesPacket {
     @NonNull public final List<String> actionItems;
     @NonNull public final String transcript;
     @Nullable public final String ownerEmail;
+    @Nullable public final String ownerName;
+    @Nullable public final String university;
+    @Nullable public final String professor;
+    @NonNull public final List<SharedHandout> handouts;
     public final long createdAtMs;
 
     public SharedNotesPacket(@NonNull String shareCode,
@@ -26,6 +30,38 @@ public final class SharedNotesPacket {
                              @NonNull String transcript,
                              @Nullable String ownerEmail,
                              long createdAtMs) {
+        this(shareCode, title, summary, keyTerms, actionItems, transcript,
+                ownerEmail, null, null, null, Collections.emptyList(), createdAtMs);
+    }
+
+    public SharedNotesPacket(@NonNull String shareCode,
+                             @NonNull String title,
+                             @NonNull String summary,
+                             @NonNull List<String> keyTerms,
+                             @NonNull List<String> actionItems,
+                             @NonNull String transcript,
+                             @Nullable String ownerEmail,
+                             @Nullable String ownerName,
+                             @Nullable String university,
+                             @Nullable String professor,
+                             long createdAtMs) {
+        this(shareCode, title, summary, keyTerms, actionItems, transcript,
+                ownerEmail, ownerName, university, professor,
+                Collections.emptyList(), createdAtMs);
+    }
+
+    public SharedNotesPacket(@NonNull String shareCode,
+                             @NonNull String title,
+                             @NonNull String summary,
+                             @NonNull List<String> keyTerms,
+                             @NonNull List<String> actionItems,
+                             @NonNull String transcript,
+                             @Nullable String ownerEmail,
+                             @Nullable String ownerName,
+                             @Nullable String university,
+                             @Nullable String professor,
+                             @Nullable List<SharedHandout> handouts,
+                             long createdAtMs) {
         this.shareCode = shareCode;
         this.title = title;
         this.summary = summary;
@@ -33,6 +69,12 @@ public final class SharedNotesPacket {
         this.actionItems = List.copyOf(actionItems);
         this.transcript = transcript;
         this.ownerEmail = ownerEmail;
+        this.ownerName = ownerName;
+        this.university = university;
+        this.professor = professor;
+        this.handouts = handouts != null
+                ? List.copyOf(handouts)
+                : Collections.emptyList();
         this.createdAtMs = createdAtMs;
     }
 

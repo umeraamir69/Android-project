@@ -9,26 +9,37 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.Transformations;
 
 import com.lecturelens.core.AppExecutors;
+import com.lecturelens.core.Result;
+import com.lecturelens.core.VectorMath;
+import com.lecturelens.data.local.dao.ChatDao;
 import com.lecturelens.data.local.dao.HandoutDao;
 import com.lecturelens.data.local.dao.NotesDao;
 import com.lecturelens.data.local.dao.TranscriptDao;
+import com.lecturelens.data.local.entity.ChatMessageEntity;
 import com.lecturelens.data.local.entity.HandoutEntity;
 import com.lecturelens.data.local.entity.NotesEntity;
 import com.lecturelens.data.local.entity.TranscriptEntity;
 import com.lecturelens.data.remote.ApiKeyProvider;
 import com.lecturelens.data.remote.GeminiService;
 import com.lecturelens.data.remote.GeminiSync;
+import com.lecturelens.data.remote.HandoutStorageUploader;
 import com.lecturelens.data.remote.RemoteCallHelper;
 import com.lecturelens.data.remote.dto.GeminiCandidate;
 import com.lecturelens.data.remote.dto.GeminiGenerateRequest;
 import com.lecturelens.data.remote.dto.GeminiGenerateResponse;
 import com.lecturelens.data.remote.dto.GeminiGenerationConfig;
 import com.lecturelens.data.remote.dto.GeminiPart;
+import com.lecturelens.domain.model.ChatMessage;
 import com.lecturelens.domain.model.Handout;
 import com.lecturelens.domain.model.Notes;
+import com.lecturelens.domain.model.QaAnswer;
+import com.lecturelens.domain.model.RagCitation;
 import com.lecturelens.domain.repository.ConsentGate;
+import com.lecturelens.domain.repository.EmbeddingRepository;
 import com.lecturelens.domain.repository.HandoutRepository;
 import com.lecturelens.domain.repository.NotesQaRepository;
+
+import org.json.JSONArray;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -44,7 +55,7 @@ import javax.inject.Singleton;
 import retrofit2.Response;
 
 /**
- * Grounded notes Q&A + handout OCR via Gemini (same API key / lock as summarization).
+ * RAG-first notes Q&A + handout OCR via Gemini.
  */
 @Singleton
 public class NotesQaRepositoryImpl implements NotesQaRepository, HandoutRepository {
@@ -52,14 +63,18 @@ public class NotesQaRepositoryImpl implements NotesQaRepository, HandoutReposito
     private static final String TAG = "NotesQa";
     private static final String MODEL = ApiKeyProvider.GEMINI_MODEL_FLASH;
     private static final int MAX_CONTEXT_CHARS = 24000;
+    private static final int TOP_K = 6;
 
     private final GeminiService geminiService;
     private final ApiKeyProvider apiKeys;
     private final NotesDao notesDao;
     private final TranscriptDao transcriptDao;
     private final HandoutDao handoutDao;
+    private final ChatDao chatDao;
     private final NotesEntityMapper notesMapper;
     private final ConsentGate consentGate;
+    private final EmbeddingRepository embeddingRepository;
+    private final HandoutStorageUploader handoutStorageUploader;
     private final AppExecutors executors;
 
     @Inject
@@ -68,16 +83,22 @@ public class NotesQaRepositoryImpl implements NotesQaRepository, HandoutReposito
                                  @NonNull NotesDao notesDao,
                                  @NonNull TranscriptDao transcriptDao,
                                  @NonNull HandoutDao handoutDao,
+                                 @NonNull ChatDao chatDao,
                                  @NonNull NotesEntityMapper notesMapper,
                                  @NonNull ConsentGate consentGate,
+                                 @NonNull EmbeddingRepository embeddingRepository,
+                                 @NonNull HandoutStorageUploader handoutStorageUploader,
                                  @NonNull AppExecutors executors) {
         this.geminiService = geminiService;
         this.apiKeys = apiKeys;
         this.notesDao = notesDao;
         this.transcriptDao = transcriptDao;
         this.handoutDao = handoutDao;
+        this.chatDao = chatDao;
         this.notesMapper = notesMapper;
         this.consentGate = consentGate;
+        this.embeddingRepository = embeddingRepository;
+        this.handoutStorageUploader = handoutStorageUploader;
         this.executors = executors;
     }
 
@@ -85,7 +106,15 @@ public class NotesQaRepositoryImpl implements NotesQaRepository, HandoutReposito
     public void ask(long lectureId, @NonNull String question, @NonNull Callback callback) {
         executors.diskIO().execute(() -> {
             try {
-                callback.onAnswer(askSync(lectureId, question));
+                String q = question.trim();
+                if (q.isEmpty()) {
+                    throw new IOException("Type a question about these notes.");
+                }
+                insertChat(lectureId, ChatMessage.ROLE_USER, q, "[]");
+                QaAnswer answer = askSync(lectureId, q);
+                insertChat(lectureId, ChatMessage.ROLE_ASSISTANT, answer.text,
+                        citationsToJson(answer.citations));
+                callback.onAnswer(answer);
             } catch (Exception e) {
                 callback.onError(e.getMessage() != null ? e.getMessage() : "Ask AI failed");
             }
@@ -93,7 +122,52 @@ public class NotesQaRepositoryImpl implements NotesQaRepository, HandoutReposito
     }
 
     @NonNull
-    private String askSync(long lectureId, @NonNull String question) throws IOException {
+    @Override
+    public LiveData<List<ChatMessage>> observeChat(long lectureId) {
+        return Transformations.map(chatDao.observeByLecture(lectureId), entities -> {
+            List<ChatMessage> out = new ArrayList<>();
+            if (entities == null) {
+                return out;
+            }
+            for (ChatMessageEntity e : entities) {
+                out.add(new ChatMessage(e.id, e.lectureId, e.role, e.text, e.citationsJson, e.createdAt));
+            }
+            return out;
+        });
+    }
+
+    @Override
+    public void clearChat(long lectureId) {
+        executors.diskIO().execute(() -> chatDao.deleteByLecture(lectureId));
+    }
+
+    private void insertChat(long lectureId,
+                            @NonNull String role,
+                            @NonNull String text,
+                            @NonNull String citationsJson) {
+        ChatMessageEntity row = new ChatMessageEntity();
+        row.lectureId = lectureId;
+        row.role = role;
+        row.text = text;
+        row.citationsJson = citationsJson;
+        row.createdAt = System.currentTimeMillis();
+        chatDao.insert(row);
+    }
+
+    @NonNull
+    private static String citationsToJson(@Nullable List<RagCitation> citations) {
+        JSONArray arr = new JSONArray();
+        if (citations == null) {
+            return arr.toString();
+        }
+        for (RagCitation c : citations) {
+            arr.put(c.startMs);
+        }
+        return arr.toString();
+    }
+
+    @NonNull
+    private QaAnswer askSync(long lectureId, @NonNull String question) throws IOException {
         if (!consentGate.hasCloudConsent()) {
             throw new IOException("Turn on cloud consent in Settings to ask AI.");
         }
@@ -105,6 +179,49 @@ public class NotesQaRepositoryImpl implements NotesQaRepository, HandoutReposito
             throw new IOException("Type a question about these notes.");
         }
 
+        Result<float[]> embedResult = embeddingRepository.embedQuery(q);
+        if (embedResult instanceof Result.Success) {
+            float[] vector = ((Result.Success<float[]>) embedResult).data;
+            Result<List<RagCitation>> search =
+                    embeddingRepository.searchSimilar(lectureId, vector, TOP_K);
+            if (search instanceof Result.Success) {
+                List<RagCitation> hits = ((Result.Success<List<RagCitation>>) search).data;
+                if (!hits.isEmpty()) {
+                    return askWithRag(q, hits);
+                }
+            }
+        }
+
+        // Fallback: full-context prompt when embeddings are missing.
+        return QaAnswer.plain(askWithFullContext(lectureId, q));
+    }
+
+    @NonNull
+    private QaAnswer askWithRag(@NonNull String question, @NonNull List<RagCitation> hits)
+            throws IOException {
+        StringBuilder ctx = new StringBuilder();
+        for (int i = 0; i < hits.size(); i++) {
+            RagCitation c = hits.get(i);
+            ctx.append("[").append(i + 1).append("] ")
+                    .append(VectorMath.formatTimestamp(c.startMs))
+                    .append(" — ")
+                    .append(c.snippet)
+                    .append("\n\n");
+        }
+        String prompt = "You are LectureLens study assistant using retrieved lecture chunks.\n"
+                + "Answer ONLY using the CHUNKS below. If insufficient, reply exactly: "
+                + "\"I couldn't find that in these lecture notes.\"\n"
+                + "Cite sources like [1], [2] matching chunk numbers.\n"
+                + "Format with markdown.\n\nCHUNKS:\n" + ctx + "QUESTION:\n" + question;
+        String answer = callPlainGemini(prompt);
+        if (answer.contains("I couldn't find that in these lecture notes")) {
+            return QaAnswer.plain(answer);
+        }
+        return new QaAnswer(answer, hits);
+    }
+
+    @NonNull
+    private String askWithFullContext(long lectureId, @NonNull String q) throws IOException {
         NotesEntity notesEntity = notesDao.getNotesSync(lectureId);
         Notes notes = notesMapper.toDomain(notesEntity);
         TranscriptEntity transcript = transcriptDao.getTranscriptSync(lectureId);
@@ -165,17 +282,18 @@ public class NotesQaRepositoryImpl implements NotesQaRepository, HandoutReposito
                 return out;
             }
             for (HandoutEntity e : list) {
-                out.add(new Handout(e.id, e.lectureId, e.imagePath, e.extractedText, e.createdAt));
+                out.add(toHandout(e));
             }
             return out;
         });
     }
 
     @Override
-    public void addHandoutImage(long lectureId,
-                                @NonNull File imageFile,
-                                @NonNull String mimeType,
-                                @NonNull HandoutCallback callback) {
+    public void addHandoutFile(long lectureId,
+                               @NonNull File file,
+                               @NonNull String mimeType,
+                               @Nullable String displayName,
+                               @NonNull HandoutCallback callback) {
         executors.diskIO().execute(() -> {
             try {
                 if (!consentGate.hasCloudConsent()) {
@@ -186,14 +304,25 @@ public class NotesQaRepositoryImpl implements NotesQaRepository, HandoutReposito
                     callback.onError("Gemini API key is missing. Add it in Settings.");
                     return;
                 }
-                String extracted = ocrImage(imageFile, mimeType);
+                String mime = mimeType == null || mimeType.isEmpty() ? guessMime(file) : mimeType;
+                String name = displayName != null && !displayName.trim().isEmpty()
+                        ? displayName.trim()
+                        : file.getName();
+                String extracted = extractHandoutText(file, mime);
                 HandoutEntity entity = new HandoutEntity();
                 entity.lectureId = lectureId;
-                entity.imagePath = imageFile.getAbsolutePath();
+                entity.imagePath = file.getAbsolutePath();
+                entity.mimeType = mime;
+                entity.displayName = name;
                 entity.extractedText = extracted;
                 entity.createdAt = System.currentTimeMillis();
                 long id = handoutDao.insert(entity);
-                callback.onAdded(new Handout(id, lectureId, entity.imagePath, extracted, entity.createdAt));
+                Handout handout = toHandout(entity);
+                // Room assigns id on insert — rebuild with generated id.
+                handout = new Handout(id, lectureId, entity.imagePath, mime, name,
+                        extracted, null, entity.createdAt);
+                callback.onAdded(handout);
+                uploadHandoutCloud(lectureId, id, file, mime);
             } catch (Exception e) {
                 Log.e(TAG, "Handout OCR failed", e);
                 callback.onError(e.getMessage() != null ? e.getMessage() : "Couldn't read handout");
@@ -201,17 +330,75 @@ public class NotesQaRepositoryImpl implements NotesQaRepository, HandoutReposito
         });
     }
 
+    @Override
+    public void deleteHandout(long handoutId) {
+        executors.diskIO().execute(() -> handoutDao.deleteById(handoutId));
+    }
+
+    private void uploadHandoutCloud(long lectureId,
+                                    long handoutId,
+                                    @NonNull File file,
+                                    @NonNull String mime) {
+        handoutStorageUploader.upload(lectureId, handoutId, file, mime,
+                new HandoutStorageUploader.Callback() {
+                    @Override
+                    public void onUploaded(@NonNull String downloadUrl) {
+                        executors.diskIO().execute(() ->
+                                handoutDao.updateRemoteUrl(handoutId, downloadUrl));
+                    }
+
+                    @Override
+                    public void onSkipped(@NonNull String reason) {
+                        Log.i(TAG, "Handout cloud skip: " + reason);
+                    }
+
+                    @Override
+                    public void onError(@NonNull String message) {
+                        Log.w(TAG, "Handout cloud upload failed: " + message);
+                    }
+                });
+    }
+
     @NonNull
-    private String ocrImage(@NonNull File imageFile, @NonNull String mimeType) throws IOException {
+    private static Handout toHandout(@NonNull HandoutEntity e) {
+        return new Handout(
+                e.id,
+                e.lectureId,
+                e.imagePath,
+                e.mimeType != null ? e.mimeType : "image/jpeg",
+                e.displayName != null ? e.displayName : "",
+                e.extractedText,
+                e.remoteUrl,
+                e.createdAt);
+    }
+
+    @NonNull
+    private String extractHandoutText(@NonNull File file, @NonNull String mimeType)
+            throws IOException {
+        if (mimeType.startsWith("text/")) {
+            return new String(readAll(file), java.nio.charset.StandardCharsets.UTF_8).trim();
+        }
+        return ocrDocument(file, mimeType);
+    }
+
+    @NonNull
+    private String ocrDocument(@NonNull File imageFile, @NonNull String mimeType) throws IOException {
         byte[] bytes = readAll(imageFile);
+        if (bytes.length > 18 * 1024 * 1024) {
+            throw new IOException("File is too large to scan (max ~18 MB).");
+        }
         String b64 = Base64.encodeToString(bytes, Base64.NO_WRAP);
         String mime = mimeType == null || mimeType.isEmpty() ? "image/jpeg" : mimeType;
+        String prompt = mime.contains("pdf")
+                ? "Extract ALL readable text from this lecture PDF / handout. "
+                + "Preserve structure with markdown: headings, lists, tables as text. "
+                + "Return only the extracted text, no commentary."
+                : "Extract ALL readable text from this lecture handout / quiz / slide / document. "
+                + "Preserve structure with markdown: headings, **bold** where printed bold, "
+                + "and - bullet lists. If handwriting is unclear, note [unclear]. "
+                + "Return only the extracted text, no commentary.";
         List<GeminiPart> parts = new ArrayList<>();
-        parts.add(new GeminiPart(
-                "Extract ALL readable text from this lecture handout / quiz / slide photo. "
-                        + "Preserve structure with markdown: headings, **bold** where printed bold, "
-                        + "and - bullet lists. If handwriting is unclear, note [unclear]. "
-                        + "Return only the extracted text, no commentary."));
+        parts.add(new GeminiPart(prompt));
         parts.add(GeminiPart.image(mime, b64));
         synchronized (GeminiSync.LOCK) {
             Response<GeminiGenerateResponse> response = geminiService.generateContent(
@@ -224,11 +411,35 @@ public class NotesQaRepositoryImpl implements NotesQaRepository, HandoutReposito
             }
             String text = extractText(response.body());
             if (text.isEmpty()) {
-                throw new IOException("No text found in that image.");
+                throw new IOException("No text found in that file.");
             }
             sleepBrief();
             return text;
         }
+    }
+
+    @NonNull
+    private static String guessMime(@NonNull File file) {
+        String name = file.getName().toLowerCase(Locale.US);
+        if (name.endsWith(".png")) {
+            return "image/png";
+        }
+        if (name.endsWith(".webp")) {
+            return "image/webp";
+        }
+        if (name.endsWith(".pdf")) {
+            return "application/pdf";
+        }
+        if (name.endsWith(".txt")) {
+            return "text/plain";
+        }
+        if (name.endsWith(".doc")) {
+            return "application/msword";
+        }
+        if (name.endsWith(".docx")) {
+            return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+        }
+        return "image/jpeg";
     }
 
     @NonNull

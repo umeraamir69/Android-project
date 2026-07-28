@@ -5,7 +5,9 @@ import android.content.Context;
 import androidx.room.Room;
 
 import com.lecturelens.data.local.LectureLensDatabase;
+import com.lecturelens.data.local.dao.ChatDao;
 import com.lecturelens.data.local.dao.CourseDao;
+import com.lecturelens.data.local.dao.EmbeddingDao;
 import com.lecturelens.data.local.dao.HandoutDao;
 import com.lecturelens.data.local.dao.LectureDao;
 import com.lecturelens.data.local.dao.NotesDao;
@@ -67,5 +69,15 @@ public class DatabaseModule {
     @Provides
     public HandoutDao provideHandoutDao(LectureLensDatabase db) {
         return db.handoutDao();
+    }
+
+    @Provides
+    public EmbeddingDao provideEmbeddingDao(LectureLensDatabase db) {
+        return db.embeddingDao();
+    }
+
+    @Provides
+    public ChatDao provideChatDao(LectureLensDatabase db) {
+        return db.chatDao();
     }
 }

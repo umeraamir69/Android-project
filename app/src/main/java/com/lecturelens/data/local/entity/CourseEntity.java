@@ -25,4 +25,9 @@ public class CourseEntity {
 
     @ColumnInfo(name = "created_at")
     public long createdAt;
+
+    /** Instructor associated with this course / its notes. */
+    @NonNull
+    @ColumnInfo(name = "professor")
+    public String professor = "";
 }

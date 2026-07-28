@@ -1,9 +1,11 @@
 package com.lecturelens.data.repository;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.lecturelens.domain.model.SharedHandout;
 import com.lecturelens.domain.model.SharedNotesPacket;
 import com.lecturelens.domain.repository.CloudShareRepository;
 
@@ -42,6 +44,10 @@ public class FirestoreCloudShareRepository implements CloudShareRepository {
         data.put("actionItems", packet.actionItems);
         data.put("transcript", packet.transcript);
         data.put("ownerEmail", packet.ownerEmail != null ? packet.ownerEmail : "");
+        data.put("ownerName", packet.ownerName != null ? packet.ownerName : "");
+        data.put("university", packet.university != null ? packet.university : "");
+        data.put("professor", packet.professor != null ? packet.professor : "");
+        data.put("handouts", handoutsToMaps(packet.handouts));
         data.put("createdAtMs", packet.createdAtMs > 0L
                 ? packet.createdAtMs
                 : System.currentTimeMillis());
@@ -59,6 +65,10 @@ public class FirestoreCloudShareRepository implements CloudShareRepository {
             callback.onError("Enter a share code");
             return;
         }
+        if (code.length() != CODE_LENGTH) {
+            callback.onError("Share codes are exactly " + CODE_LENGTH + " characters");
+            return;
+        }
         firestore.collection(COLLECTION).document(code)
                 .get()
                 .addOnSuccessListener(snap -> {
@@ -71,6 +81,12 @@ public class FirestoreCloudShareRepository implements CloudShareRepository {
                 .addOnFailureListener(e -> callback.onError(friendly(e)));
     }
 
+    /** Public so ExportLectureUseCase can pre-allocate a code before uploading files. */
+    @NonNull
+    public String allocateShareCode() {
+        return newCode();
+    }
+
     @NonNull
     private String newCode() {
         StringBuilder sb = new StringBuilder(CODE_LENGTH);
@@ -78,6 +94,20 @@ public class FirestoreCloudShareRepository implements CloudShareRepository {
             sb.append(ALPHABET.charAt(random.nextInt(ALPHABET.length())));
         }
         return sb.toString();
+    }
+
+    @NonNull
+    private static List<Map<String, Object>> handoutsToMaps(@NonNull List<SharedHandout> handouts) {
+        List<Map<String, Object>> out = new ArrayList<>();
+        for (SharedHandout h : handouts) {
+            Map<String, Object> map = new HashMap<>();
+            map.put("displayName", h.displayName);
+            map.put("mimeType", h.mimeType);
+            map.put("extractedText", h.extractedText);
+            map.put("downloadUrl", h.downloadUrl);
+            out.add(map);
+        }
+        return out;
     }
 
     @NonNull
@@ -98,7 +128,37 @@ public class FirestoreCloudShareRepository implements CloudShareRepository {
                 actionItems,
                 transcript,
                 owner,
+                snap.getString("ownerName"),
+                snap.getString("university"),
+                snap.getString("professor"),
+                handoutsFrom(snap.get("handouts")),
                 created != null ? created : 0L);
+    }
+
+    @NonNull
+    private static List<SharedHandout> handoutsFrom(@Nullable Object raw) {
+        List<SharedHandout> out = new ArrayList<>();
+        if (!(raw instanceof List)) {
+            return out;
+        }
+        for (Object item : (List<?>) raw) {
+            if (!(item instanceof Map)) {
+                continue;
+            }
+            @SuppressWarnings("unchecked")
+            Map<String, Object> map = (Map<String, Object>) item;
+            out.add(new SharedHandout(
+                    stringObj(map.get("displayName")),
+                    stringObj(map.get("mimeType")),
+                    stringObj(map.get("extractedText")),
+                    stringObj(map.get("downloadUrl"))));
+        }
+        return out;
+    }
+
+    @NonNull
+    private static String stringObj(@Nullable Object value) {
+        return value != null ? value.toString() : "";
     }
 
     @NonNull
@@ -130,7 +190,7 @@ public class FirestoreCloudShareRepository implements CloudShareRepository {
             return "Cloud share failed. Check Firebase setup.";
         }
         if (msg.contains("PERMISSION_DENIED") || msg.toLowerCase(Locale.US).contains("permission")) {
-            return "Firestore permission denied. Enable open rules for shared_notes (see Firebase console).";
+            return "Firestore/Storage permission denied. Allow shared_notes + shared/ Storage writes (see Firebase console).";
         }
         if (msg.toLowerCase(Locale.US).contains("not been instantiated")
                 || msg.toLowerCase(Locale.US).contains("firebaseapp")) {

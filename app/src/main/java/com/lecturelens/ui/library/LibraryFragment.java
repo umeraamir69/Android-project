@@ -7,6 +7,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.FrameLayout;
+import android.widget.LinearLayout;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -162,12 +163,14 @@ public class LibraryFragment extends Fragment implements CoursesAdapter.Listener
     }
 
     @Override
-    public void onRenameCourse(long courseId, @NonNull String currentName) {
-        showTextDialog(
+    public void onRenameCourse(long courseId,
+                               @NonNull String currentName,
+                               @NonNull String professor) {
+        showCourseDialog(
                 R.string.dialog_rename_category_title,
-                R.string.dialog_category_name_hint,
                 currentName,
-                name -> viewModel.renameCourse(courseId, name));
+                professor,
+                (name, prof) -> viewModel.renameCourse(courseId, name, prof));
     }
 
     @Override
@@ -233,11 +236,56 @@ public class LibraryFragment extends Fragment implements CoursesAdapter.Listener
     }
 
     private void showAddCategoryDialog() {
-        showTextDialog(
+        showCourseDialog(
                 R.string.dialog_add_category_title,
-                R.string.dialog_category_name_hint,
                 "",
-                name -> viewModel.addCourse(name));
+                "",
+                (name, professor) -> viewModel.addCourse(name, professor));
+    }
+
+    private void showCourseDialog(int titleRes,
+                                  @NonNull String initialName,
+                                  @NonNull String initialProfessor,
+                                  @NonNull CourseDialogCallback callback) {
+        int pad = (int) (20 * getResources().getDisplayMetrics().density);
+        LinearLayout column = new LinearLayout(requireContext());
+        column.setOrientation(LinearLayout.VERTICAL);
+        column.setPadding(pad, pad / 2, pad, 0);
+
+        final EditText nameInput = new EditText(requireContext());
+        nameInput.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
+        nameInput.setHint(R.string.dialog_category_name_hint);
+        nameInput.setText(initialName);
+        nameInput.setSelectAllOnFocus(true);
+        column.addView(nameInput, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        final EditText professorInput = new EditText(requireContext());
+        professorInput.setInputType(
+                InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_WORDS);
+        professorInput.setHint(R.string.dialog_professor_hint);
+        professorInput.setText(initialProfessor);
+        LinearLayout.LayoutParams profParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT);
+        profParams.topMargin = pad / 2;
+        column.addView(professorInput, profParams);
+
+        new MaterialAlertDialogBuilder(requireContext())
+                .setTitle(titleRes)
+                .setView(column)
+                .setNegativeButton(R.string.action_cancel, null)
+                .setPositiveButton(R.string.action_save, (d, w) ->
+                        callback.onResult(
+                                nameInput.getText() != null
+                                        ? nameInput.getText().toString()
+                                        : "",
+                                professorInput.getText() != null
+                                        ? professorInput.getText().toString()
+                                        : ""))
+                .show();
+        nameInput.requestFocus();
     }
 
     private void showTextDialog(int titleRes,
@@ -274,6 +322,10 @@ public class LibraryFragment extends Fragment implements CoursesAdapter.Listener
 
     private interface TextDialogCallback {
         void onResult(@NonNull String value);
+    }
+
+    private interface CourseDialogCallback {
+        void onResult(@NonNull String name, @NonNull String professor);
     }
 
     @NonNull

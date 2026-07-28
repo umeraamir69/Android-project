@@ -17,6 +17,7 @@ import com.lecturelens.data.remote.GeminiService;
 import com.lecturelens.data.remote.GeminiSync;
 import com.lecturelens.data.remote.PipelineErrorStore;
 import com.lecturelens.data.remote.RemoteCallHelper;
+import com.lecturelens.data.remote.UsageLimiter;
 import com.lecturelens.data.remote.dto.GeminiCandidate;
 import com.lecturelens.data.remote.dto.GeminiGenerateRequest;
 import com.lecturelens.data.remote.dto.GeminiGenerateResponse;
@@ -29,6 +30,7 @@ import com.lecturelens.data.local.entity.HandoutEntity;
 import com.lecturelens.domain.model.LectureStatus;
 import com.lecturelens.domain.model.Notes;
 import com.lecturelens.domain.repository.LectureRepository;
+import com.lecturelens.domain.repository.LibrarySyncRepository;
 import com.lecturelens.domain.repository.LlmRepository;
 import com.lecturelens.domain.util.TranscriptChunker;
 
@@ -76,6 +78,8 @@ public class LlmRepositoryImpl implements LlmRepository {
     private final NotesEntityMapper notesMapper;
     private final TranscriptChunker chunker;
     private final PipelineErrorStore errorStore;
+    private final UsageLimiter usageLimiter;
+    private final LibrarySyncRepository librarySync;
 
     @Inject
     public LlmRepositoryImpl(@NonNull GeminiService geminiService,
@@ -87,7 +91,9 @@ public class LlmRepositoryImpl implements LlmRepository {
                              @NonNull LectureRepository lectureRepository,
                              @NonNull NotesEntityMapper notesMapper,
                              @NonNull TranscriptChunker chunker,
-                             @NonNull PipelineErrorStore errorStore) {
+                             @NonNull PipelineErrorStore errorStore,
+                             @NonNull UsageLimiter usageLimiter,
+                             @NonNull LibrarySyncRepository librarySync) {
         this.geminiService = geminiService;
         this.apiKeys = apiKeys;
         this.notesDao = notesDao;
@@ -98,6 +104,8 @@ public class LlmRepositoryImpl implements LlmRepository {
         this.notesMapper = notesMapper;
         this.chunker = chunker;
         this.errorStore = errorStore;
+        this.usageLimiter = usageLimiter;
+        this.librarySync = librarySync;
     }
 
     @NonNull
@@ -106,6 +114,10 @@ public class LlmRepositoryImpl implements LlmRepository {
         if (!apiKeys.hasGeminiKey()) {
             return fail(lectureId,
                     "Gemini API key is missing. Add it in Settings or local.properties.");
+        }
+        if (!usageLimiter.canCallGemini()) {
+            return fail(lectureId,
+                    "Daily Gemini quota reached. Try On-device mode in Settings, or wait until tomorrow.");
         }
         if (transcriptText.trim().isEmpty()) {
             return fail(lectureId, "Transcript is empty — cannot summarize.");
@@ -139,8 +151,10 @@ public class LlmRepositoryImpl implements LlmRepository {
 
             notesDao.insert(notesMapper.toEntity(notes));
             applyAiTitleAndCategory(lectureId, payload);
+            usageLimiter.recordGeminiCall();
             lectureRepository.updateStatus(lectureId, LectureStatus.READY);
             errorStore.clear(lectureId);
+            librarySync.pushLecture(lectureId);
             return Result.success(notes);
         } catch (QuotaExceededException e) {
             Log.e(TAG, "Gemini quota exceeded", e);

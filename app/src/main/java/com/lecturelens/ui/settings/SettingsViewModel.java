@@ -8,6 +8,9 @@ import androidx.lifecycle.ViewModel;
 
 import com.lecturelens.core.AppExecutors;
 import com.lecturelens.data.prefs.UserSettingsStore;
+import com.lecturelens.domain.model.AuthUser;
+import com.lecturelens.domain.model.UserProfile;
+import com.lecturelens.domain.repository.AuthRepository;
 import com.lecturelens.domain.repository.CredentialsStore;
 import com.lecturelens.processing.PipelineOrchestrator;
 
@@ -24,48 +27,78 @@ public class SettingsViewModel extends ViewModel {
         public final boolean consent;
         @NonNull public final String themeMode;
         @NonNull public final String language;
+        @NonNull public final String processingMode;
+        @NonNull public final UserProfile profile;
 
         State(@NonNull String email,
               @NonNull String apiKey,
               boolean consent,
               @NonNull String themeMode,
-              @NonNull String language) {
+              @NonNull String language,
+              @NonNull String processingMode,
+              @NonNull UserProfile profile) {
             this.email = email;
             this.apiKey = apiKey;
             this.consent = consent;
             this.themeMode = themeMode;
             this.language = language;
+            this.processingMode = processingMode;
+            this.profile = profile;
         }
     }
 
     private final CredentialsStore credentials;
     private final UserSettingsStore userSettings;
+    private final AuthRepository authRepository;
     private final AppExecutors executors;
     private final PipelineOrchestrator orchestrator;
 
     private final MutableLiveData<State> state = new MutableLiveData<>();
     private final MutableLiveData<String> apiKeyError = new MutableLiveData<>();
     private final MutableLiveData<Boolean> keySaved = new MutableLiveData<>(false);
+    private final MutableLiveData<Boolean> profileSaved = new MutableLiveData<>(false);
+    private final MutableLiveData<Boolean> signedOut = new MutableLiveData<>(false);
 
     @Inject
     public SettingsViewModel(@NonNull CredentialsStore credentials,
                              @NonNull UserSettingsStore userSettings,
+                             @NonNull AuthRepository authRepository,
                              @NonNull AppExecutors executors,
                              @NonNull PipelineOrchestrator orchestrator) {
         this.credentials = credentials;
         this.userSettings = userSettings;
+        this.authRepository = authRepository;
         this.executors = executors;
         this.orchestrator = orchestrator;
         reload();
     }
 
     private void reload() {
-        executors.diskIO().execute(() -> state.postValue(new State(
-                credentials.getEmail(),
-                credentials.getApiKey(),
-                credentials.hasCloudConsent(),
-                userSettings.getThemeMode(),
-                userSettings.getSttLanguage())));
+        executors.diskIO().execute(() -> {
+            AuthUser user = authRepository.getCurrentUser();
+            String email = user != null && user.email != null && !user.email.isEmpty()
+                    ? user.email
+                    : credentials.getEmail();
+            String displayHint = user != null && user.displayName != null ? user.displayName : "";
+            UserProfile profile = userSettings.getProfile();
+            if (profile.fullName.isEmpty() && !displayHint.isEmpty()) {
+                profile = new UserProfile(
+                        profile.username,
+                        displayHint,
+                        profile.dateOfBirth,
+                        profile.university,
+                        profile.program,
+                        profile.studentId);
+            }
+            state.postValue(new State(
+                    email,
+                    credentials.getApiKey(),
+                    credentials.hasCloudConsent(),
+                    userSettings.getThemeMode(),
+                    userSettings.getSttLanguage(),
+                    userSettings.getProcessingMode(),
+                    profile));
+        });
     }
 
     @NonNull
@@ -83,8 +116,36 @@ public class SettingsViewModel extends ViewModel {
         return keySaved;
     }
 
+    @NonNull
+    public LiveData<Boolean> getProfileSaved() {
+        return profileSaved;
+    }
+
+    @NonNull
+    public LiveData<Boolean> getSignedOut() {
+        return signedOut;
+    }
+
     public void ackKeySaved() {
         keySaved.setValue(false);
+    }
+
+    public void ackProfileSaved() {
+        profileSaved.setValue(false);
+    }
+
+    public void saveProfile(@Nullable String username,
+                            @Nullable String fullName,
+                            @Nullable String dob,
+                            @Nullable String university,
+                            @Nullable String program,
+                            @Nullable String studentId) {
+        UserProfile profile = new UserProfile(
+                username, fullName, dob, university, program, studentId);
+        executors.diskIO().execute(() -> {
+            userSettings.setProfile(profile);
+            profileSaved.postValue(true);
+        });
     }
 
     public void saveApiKey(@Nullable String apiKey) {
@@ -112,5 +173,14 @@ public class SettingsViewModel extends ViewModel {
 
     public void setSttLanguage(@NonNull String languageCode) {
         userSettings.setSttLanguage(languageCode);
+    }
+
+    public void setProcessingMode(@NonNull String mode) {
+        userSettings.setProcessingMode(mode);
+    }
+
+    public void signOut() {
+        authRepository.signOut();
+        signedOut.setValue(true);
     }
 }
