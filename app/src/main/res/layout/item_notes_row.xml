@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:paddingHorizontal="16dp"
+    android:paddingVertical="6dp">
+
+    <TextView
+        android:id="@+id/text_heading"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingTop="8dp"
+        android:textAppearance="?attr/textAppearanceTitleSmall"
+        android:visibility="gone"
+        tools:text="Summary"
+        tools:visibility="visible" />
+
+    <TextView
+        android:id="@+id/text_bullet"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingStart="8dp"
+        android:textAppearance="?attr/textAppearanceBodyMedium"
+        android:visibility="gone"
+        tools:text="• Review onCreate vs onStart"
+        tools:visibility="gone" />
+
+    <com.google.android.material.chip.Chip
+        android:id="@+id/chip_key_term"
+        style="@style/Widget.Material3.Chip.Assist"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:clickable="false"
+        android:focusable="false"
+        android:visibility="gone"
+        tools:text="lifecycle"
+        tools:visibility="gone" />
+
+</FrameLayout>

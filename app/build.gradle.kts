@@ -56,6 +56,8 @@ dependencies {
     implementation(libs.constraintlayout)
     implementation(libs.fragment)
     implementation(libs.material)
+    implementation(libs.recyclerview)
+    implementation(libs.viewpager2)
     // Navigation Component
     implementation(libs.navigation.fragment)
     implementation(libs.navigation.ui)

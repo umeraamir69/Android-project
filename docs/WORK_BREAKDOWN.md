@@ -270,6 +270,8 @@ di/NetworkModule.java                     (fill Track 1 skeleton)
 
 ## Track 5 — Lecture View + Search (Aaron)
 
+**Status:** Complete
+
 **Package:** `ui/lecture/`, `ui/search/`, `core/player/`, `domain/usecase/`
 
 **Scope**

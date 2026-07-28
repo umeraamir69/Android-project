@@ -12,8 +12,28 @@
     <!-- ===== Day 0 placeholders — each track replaces its own screen ===== -->
     <string name="placeholder_library">Library placeholder — Track 2 (Daniel)</string>
     <string name="placeholder_upload">Upload placeholder — Track 3 (Adeniyi)</string>
-    <string name="placeholder_lecture">Lecture view placeholder — Track 5 (Aaron) · lectureId=%1$d</string>
-    <string name="placeholder_search">Search placeholder — Track 5 (Aaron)</string>
+
+    <!-- ===== Track 5 — Lecture view + Search ===== -->
+    <string name="lecture_tab_player">Player</string>
+    <string name="lecture_tab_transcript">Transcript</string>
+    <string name="lecture_tab_notes">Notes</string>
+    <string name="lecture_no_audio">No audio file for this lecture yet.</string>
+    <string name="lecture_audio_missing">Audio file is missing on disk.</string>
+    <string name="lecture_transcript_empty">No transcript yet. Process this lecture to generate one.</string>
+    <string name="lecture_notes_empty">No notes yet. Notes appear after summarization finishes.</string>
+    <string name="lecture_notes_summary">Summary</string>
+    <string name="lecture_notes_key_terms">Key terms</string>
+    <string name="lecture_notes_action_items">Action items</string>
+    <string name="lecture_not_found">Lecture not found</string>
+    <string name="action_export">Export Markdown</string>
+    <string name="export_share_title">Share lecture notes</string>
+    <string name="export_success">Notes ready to share</string>
+    <string name="export_failed">Couldn\'t export notes</string>
+    <string name="search_hint">Search transcripts</string>
+    <string name="search_empty">No matching segments</string>
+    <string name="search_prompt">Type a keyword to search your lectures</string>
+    <string name="search_error">Search failed. Try a simpler query.</string>
+    <string name="cd_play_pause">Play or pause</string>
 
     <string name="action_continue">Continue</string>
     <string name="action_open_lecture">Open lecture (placeholder)</string>

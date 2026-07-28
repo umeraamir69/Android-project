@@ -48,14 +48,16 @@ public class DatabaseSmokeTest {
 
     @Test
     public void seed_isIdempotent_andSearchable() {
-        DatabaseSeeder seeder =
-                new DatabaseSeeder(db.courseDao(), db.lectureDao(), db.transcriptDao());
+        DatabaseSeeder seeder = new DatabaseSeeder(
+                db.courseDao(), db.lectureDao(), db.transcriptDao(), db.notesDao());
 
         assertTrue(seeder.seedIfEmpty());
         assertFalse("second run must be a no-op", seeder.seedIfEmpty());
 
         assertEquals(1, db.courseDao().count());
         assertEquals(2, db.lectureDao().count());
+        assertNotNull("seeded READY lecture should have notes",
+                db.notesDao().getNotesSync(1L));
 
         // FTS4 over seeded segments — external-content triggers must be live.
         List<SearchHit> hits = db.searchDao().searchSync("lifecycle*");
