@@ -6,6 +6,7 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
+import com.lecturelens.BuildConfig;
 import com.lecturelens.core.AppExecutors;
 import com.lecturelens.data.repository.DatabaseSeeder;
 import com.lecturelens.domain.repository.CredentialsStore;
@@ -15,13 +16,11 @@ import javax.inject.Inject;
 import dagger.hilt.android.lifecycle.HiltViewModel;
 
 /**
- * Track 1 — login: email + Google API key + cloud-processing consent
- * (WORK_BREAKDOWN Track 1 Auth). Consent is optional at sign-in; without it
- * recordings are saved locally but never uploaded (arch doc §1.1).
+ * Track 1 — login: email + Google API key + cloud-processing consent.
  *
- * <p>On success the store is written, the demo course/lecture is seeded on
- * first run, and {@link #getSignedIn()} fires (login is popped from the back
- * stack, so re-emission after navigation is moot).
+ * <p><b>testing branch:</b> if {@code local.properties} has STT/Gemini keys,
+ * the API-key field may be left empty — cloud calls use BuildConfig keys.
+ * Consent still matters: without it the record pipeline is not enqueued.
  */
 @HiltViewModel
 public class LoginViewModel extends ViewModel {
@@ -58,13 +57,15 @@ public class LoginViewModel extends ViewModel {
         this.executors = executors;
         // Encrypted prefs are disk-backed — load off the main thread.
         executors.diskIO().execute(() -> {
+            String storedKey = credentials.getApiKey();
+            // Prefill a hint when local.properties keys are present.
+            if (storedKey.isEmpty() && hasLocalDevKeys()) {
+                storedKey = "(using local.properties keys)";
+            }
             prefill.postValue(new Prefill(
-                    credentials.getEmail(),
-                    credentials.getApiKey(),
-                    credentials.hasCloudConsent()));
-            // Already signed in → skip the login form and go straight to the
-            // Library (the nav action pops login off the back stack). Sign-out
-            // isn't a feature yet; when it is, it just clears the store.
+                    credentials.getEmail().isEmpty() ? "tester@lecturelens.dev" : credentials.getEmail(),
+                    storedKey,
+                    true /* default consent on for easier device testing */));
             if (credentials.isSignedIn()) {
                 signedIn.postValue(true);
             }
@@ -100,6 +101,9 @@ public class LoginViewModel extends ViewModel {
     public void signIn(@Nullable String email, @Nullable String apiKey, boolean consent) {
         String cleanEmail = email == null ? "" : email.trim();
         String cleanKey = apiKey == null ? "" : apiKey.trim();
+        if ("(using local.properties keys)".equals(cleanKey)) {
+            cleanKey = "";
+        }
 
         boolean valid = true;
         if (cleanEmail.isEmpty() || !cleanEmail.contains("@")) {
@@ -108,8 +112,9 @@ public class LoginViewModel extends ViewModel {
         } else {
             emailError.setValue(null);
         }
-        if (cleanKey.isEmpty()) {
-            apiKeyError.setValue("Enter your Google API key");
+        // testing: allow empty login key when BuildConfig has STT + Gemini keys
+        if (cleanKey.isEmpty() && !hasLocalDevKeys()) {
+            apiKeyError.setValue("Enter your Google API key (or add keys to local.properties)");
             valid = false;
         } else {
             apiKeyError.setValue(null);
@@ -119,13 +124,21 @@ public class LoginViewModel extends ViewModel {
         }
 
         loading.setValue(true);
+        final String keyToStore = cleanKey;
+        final boolean consentToStore = consent;
         executors.diskIO().execute(() -> {
             credentials.setEmail(cleanEmail);
-            credentials.setApiKey(cleanKey);
-            credentials.setCloudConsent(consent);
+            // Empty means ApiKeyProvider uses BuildConfig STT + Gemini keys.
+            credentials.setApiKey(keyToStore);
+            credentials.setCloudConsent(consentToStore);
             seeder.seedIfEmpty();
             loading.postValue(false);
             signedIn.postValue(true);
         });
+    }
+
+    private static boolean hasLocalDevKeys() {
+        return BuildConfig.STT_API_KEY != null && !BuildConfig.STT_API_KEY.isEmpty()
+                && BuildConfig.GEMINI_API_KEY != null && !BuildConfig.GEMINI_API_KEY.isEmpty();
     }
 }

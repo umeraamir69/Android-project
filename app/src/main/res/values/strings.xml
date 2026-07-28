@@ -45,8 +45,8 @@
     <string name="login_headline">LectureLens</string>
     <string name="login_subtitle">Turn lecture audio into searchable notes</string>
     <string name="login_email_hint">Email</string>
-    <string name="login_api_key_hint">Google API key</string>
-    <string name="login_api_key_helper">Stored encrypted on this device</string>
+    <string name="login_api_key_hint">Google API key (optional if local.properties set)</string>
+    <string name="login_api_key_helper">Testing: STT + Gemini keys come from local.properties. Keep consent checked for cloud processing.</string>
     <string name="login_consent_label">Process my lecture audio with Google cloud services</string>
     <string name="login_consent_note">Optional — without consent, recordings stay on this device and are not transcribed. You can change this any time in Settings.</string>
 

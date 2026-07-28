@@ -9,6 +9,7 @@ import static org.junit.Assert.assertTrue;
 import androidx.annotation.NonNull;
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule;
 
+import com.lecturelens.BuildConfig;
 import com.lecturelens.core.AppExecutors;
 import com.lecturelens.data.repository.DatabaseSeeder;
 import com.lecturelens.domain.repository.CredentialsStore;
@@ -79,12 +80,21 @@ public class LoginViewModelTest {
     }
 
     @Test
-    public void signIn_rejectsEmptyApiKey() {
+    public void signIn_emptyApiKey_allowedOnlyWithLocalDevKeys() {
         viewModel.signIn("zee@uni.ca", "   ", true);
 
-        assertNotNull(viewModel.getApiKeyError().getValue());
-        assertFalse(Boolean.TRUE.equals(viewModel.getSignedIn().getValue()));
-        assertEquals("", store.apiKey);
+        boolean hasDevKeys = BuildConfig.STT_API_KEY != null && !BuildConfig.STT_API_KEY.isEmpty()
+                && BuildConfig.GEMINI_API_KEY != null && !BuildConfig.GEMINI_API_KEY.isEmpty();
+        if (hasDevKeys) {
+            // testing branch: local.properties keys cover STT + Gemini
+            assertNull(viewModel.getApiKeyError().getValue());
+            assertTrue(Boolean.TRUE.equals(viewModel.getSignedIn().getValue()));
+            assertEquals("", store.apiKey);
+        } else {
+            assertNotNull(viewModel.getApiKeyError().getValue());
+            assertFalse(Boolean.TRUE.equals(viewModel.getSignedIn().getValue()));
+            assertEquals("", store.apiKey);
+        }
     }
 
     @Test

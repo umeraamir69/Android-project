@@ -9,13 +9,11 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 /**
- * Track 4 — cloud credentials and project metadata for Retrofit clients.
+ * Track 4 — cloud credentials for Retrofit clients.
  *
- * <p>Key resolution (agreed Tracks 1+4): the user's key from
- * {@link CredentialsStore} (entered at login, stored encrypted) wins; the
- * {@code local.properties} → BuildConfig key is the developer fallback so the
- * pipeline still works on dev builds without signing in. Only called from
- * network/worker threads, so the encrypted-prefs disk read is safe here.
+ * <p><b>testing branch:</b> prefer {@code local.properties} → BuildConfig keys
+ * so STT and Gemini each get the correct key. Login's single stored key is only
+ * a fallback when BuildConfig is empty (production Track 1 UX).
  */
 @Singleton
 public class ApiKeyProvider {
@@ -33,14 +31,20 @@ public class ApiKeyProvider {
 
     @NonNull
     public String getSpeechToTextApiKey() {
-        String userKey = credentials.getApiKey();
-        return !userKey.isEmpty() ? userKey : nullToEmpty(BuildConfig.STT_API_KEY);
+        String fromBuild = nullToEmpty(BuildConfig.STT_API_KEY);
+        if (!fromBuild.isEmpty()) {
+            return fromBuild;
+        }
+        return nullToEmpty(credentials.getApiKey());
     }
 
     @NonNull
     public String getGeminiApiKey() {
-        String userKey = credentials.getApiKey();
-        return !userKey.isEmpty() ? userKey : nullToEmpty(BuildConfig.GEMINI_API_KEY);
+        String fromBuild = nullToEmpty(BuildConfig.GEMINI_API_KEY);
+        if (!fromBuild.isEmpty()) {
+            return fromBuild;
+        }
+        return nullToEmpty(credentials.getApiKey());
     }
 
     @NonNull
