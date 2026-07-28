@@ -32,6 +32,14 @@ public class SearchResultsAdapter
 
     public abstract static class ListItem {
         abstract int viewType();
+
+        // Required so DiffUtil.ItemCallback<ListItem> satisfies Lint DiffUtilEquals
+        // (HeaderItem / HitItem already provide the real implementations).
+        @Override
+        public abstract boolean equals(Object o);
+
+        @Override
+        public abstract int hashCode();
     }
 
     public static final class HeaderItem extends ListItem {
