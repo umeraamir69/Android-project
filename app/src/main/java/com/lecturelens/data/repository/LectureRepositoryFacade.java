@@ -71,4 +71,19 @@ public class LectureRepositoryFacade implements LectureRepository {
     public void updateAudioPath(long id, @Nullable String audioPath) {
         writes.updateAudioPath(id, audioPath);
     }
+
+    @Override
+    public void updateCourseId(long id, long courseId) {
+        writes.updateCourseId(id, courseId);
+    }
+
+    @Override
+    public void updateTitle(long id, @NonNull String title) {
+        writes.updateTitle(id, title);
+    }
+
+    @Override
+    public void clearCourseId(long courseId) {
+        writes.clearCourseId(courseId);
+    }
 }

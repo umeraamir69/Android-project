@@ -10,7 +10,7 @@
         android:id="@+id/player_container"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_gravity="center"
+        android:layout_gravity="top"
         android:orientation="vertical"
         android:visibility="gone"
         tools:visibility="visible">
@@ -32,6 +32,37 @@
             android:textAppearance="?attr/textAppearanceBodySmall"
             android:textColor="?attr/colorOnSurfaceVariant"
             tools:text="READY · 3 min" />
+
+        <include
+            android:id="@+id/pipeline_timeline_include"
+            layout="@layout/view_pipeline_timeline" />
+
+        <TextView
+            android:id="@+id/text_player_error"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:background="?attr/colorErrorContainer"
+            android:gravity="start"
+            android:maxLines="3"
+            android:ellipsize="end"
+            android:padding="12dp"
+            android:textAppearance="?attr/textAppearanceBodyMedium"
+            android:textColor="?attr/colorOnErrorContainer"
+            android:visibility="gone"
+            tools:text="Gemini quota exceeded. Wait a minute, then tap Retry notes."
+            tools:visibility="visible" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/button_retranscribe"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="12dp"
+            android:text="@string/action_retranscribe"
+            android:visibility="gone"
+            tools:visibility="visible" />
 
         <androidx.media3.ui.PlayerView
             android:id="@+id/player_view"

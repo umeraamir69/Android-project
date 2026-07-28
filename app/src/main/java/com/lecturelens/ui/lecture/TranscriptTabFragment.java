@@ -13,6 +13,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.LinearSmoothScroller;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.lecturelens.R;
 import com.lecturelens.core.UiState;
 import com.lecturelens.core.player.AudioPlaybackController;
 import com.lecturelens.databinding.FragmentTranscriptTabBinding;
@@ -60,7 +61,14 @@ public class TranscriptTabFragment extends Fragment implements TranscriptAdapter
         LectureDetail detail = ((UiState.Success<LectureDetail>) state).data;
         adapter.submitList(detail.segments);
         boolean empty = detail.segments.isEmpty();
-        binding.textTranscriptEmpty.setVisibility(empty ? View.VISIBLE : View.GONE);
+        binding.emptyState.getRoot().setVisibility(empty ? View.VISIBLE : View.GONE);
+        if (empty) {
+            binding.emptyState.imageEmpty.setImageResource(R.drawable.ill_empty_transcript);
+            binding.emptyState.textEmptyTitle.setVisibility(View.VISIBLE);
+            binding.emptyState.textEmptyTitle.setText(R.string.lecture_transcript_empty_title);
+            binding.emptyState.textEmptyMessage.setText(R.string.lecture_transcript_empty);
+            binding.emptyState.buttonEmptyCta.setVisibility(View.GONE);
+        }
         binding.recyclerTranscript.setVisibility(empty ? View.GONE : View.VISIBLE);
     }
 

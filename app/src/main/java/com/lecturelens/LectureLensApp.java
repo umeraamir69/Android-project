@@ -2,15 +2,26 @@ package com.lecturelens;
 
 import android.app.Application;
 
+import androidx.work.WorkManager;
+
+import com.lecturelens.data.prefs.UserSettingsStore;
+
 import dagger.hilt.android.HiltAndroidApp;
 
-/**
- * Application entry point.
- *
- * {@code @HiltAndroidApp} triggers Hilt's code generation so use cases and
- * repositories declared in the data/domain layers can be injected into
- * ViewModels without per-screen wiring.
- */
 @HiltAndroidApp
 public class LectureLensApp extends Application {
+
+    @Override
+    public void onCreate() {
+        super.onCreate();
+        // Apply saved light/dark/system preference before first Activity draws.
+        new UserSettingsStore(this).applyTheme();
+        try {
+            WorkManager wm = WorkManager.getInstance(this);
+            wm.cancelAllWorkByTag("transcribe");
+            wm.cancelAllWorkByTag("summarize");
+        } catch (Exception ignored) {
+            // WorkManager may not be ready in some test contexts.
+        }
+    }
 }

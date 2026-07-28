@@ -58,7 +58,7 @@ public final class CourseSection {
         return true;
     }
 
-    static boolean lectureContentEquals(@NonNull Lecture a, @NonNull Lecture b) {
+    public static boolean lectureContentEquals(@NonNull Lecture a, @NonNull Lecture b) {
         return a.getId() == b.getId()
                 && a.getCourseId() == b.getCourseId()
                 && a.getTitle().equals(b.getTitle())

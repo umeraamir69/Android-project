@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="theme_mode_labels">
+        <item>System default</item>
+        <item>Light</item>
+        <item>Dark</item>
+    </string-array>
+    <string-array name="theme_mode_values">
+        <item>system</item>
+        <item>light</item>
+        <item>dark</item>
+    </string-array>
+
+    <string-array name="stt_language_labels">
+        <item>English (US)</item>
+        <item>English (UK)</item>
+        <item>Spanish</item>
+        <item>French</item>
+        <item>German</item>
+        <item>Hindi</item>
+        <item>Arabic</item>
+        <item>Chinese (Simplified)</item>
+        <item>Japanese</item>
+        <item>Korean</item>
+        <item>Portuguese (Brazil)</item>
+        <item>Urdu</item>
+    </string-array>
+    <string-array name="stt_language_values">
+        <item>en-US</item>
+        <item>en-GB</item>
+        <item>es-ES</item>
+        <item>fr-FR</item>
+        <item>de-DE</item>
+        <item>hi-IN</item>
+        <item>ar-SA</item>
+        <item>zh-CN</item>
+        <item>ja-JP</item>
+        <item>ko-KR</item>
+        <item>pt-BR</item>
+        <item>ur-PK</item>
+    </string-array>
+</resources>

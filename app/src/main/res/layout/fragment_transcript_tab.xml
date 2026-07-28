@@ -12,16 +12,12 @@
         android:paddingVertical="8dp"
         tools:listitem="@layout/item_transcript_segment" />
 
-    <TextView
-        android:id="@+id/text_transcript_empty"
+    <include
+        android:id="@+id/empty_state"
+        layout="@layout/view_empty_state"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center"
-        android:gravity="center"
-        android:padding="24dp"
-        android:text="@string/lecture_transcript_empty"
-        android:textAppearance="?attr/textAppearanceBodyLarge"
-        android:textColor="?attr/colorOnSurfaceVariant"
         android:visibility="gone" />
 
 </FrameLayout>

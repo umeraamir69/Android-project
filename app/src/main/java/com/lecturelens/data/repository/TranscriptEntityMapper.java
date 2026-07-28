@@ -53,11 +53,13 @@ public final class TranscriptEntityMapper {
         List<TranscriptSegmentEntity> entities = new ArrayList<>(segments.size());
         for (TranscriptSegment segment : segments) {
             TranscriptSegmentEntity entity = new TranscriptSegmentEntity();
-            entity.id = segment.getId();
+            // id stays 0 → Room autoGenerate. Mapper used to copy STT-local
+            // 1..N ids, which collide with seed / other lectures (UNIQUE PK).
             entity.lectureId = lectureId;
             entity.startMs = segment.getStartMs();
             entity.endMs = segment.getEndMs();
             entity.text = segment.getText();
+            entity.speakerTag = segment.getSpeakerTag();
             entities.add(entity);
         }
         return entities;
@@ -75,7 +77,8 @@ public final class TranscriptEntityMapper {
                     entity.lectureId,
                     entity.startMs,
                     entity.endMs,
-                    entity.text));
+                    entity.text,
+                    entity.speakerTag));
         }
         return segments;
     }

@@ -5,11 +5,13 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.navigation.fragment.NavHostFragment;
 
 import com.google.android.material.snackbar.Snackbar;
 import com.lecturelens.R;
@@ -18,10 +20,6 @@ import com.lecturelens.databinding.FragmentSettingsBinding;
 
 import dagger.hilt.android.AndroidEntryPoint;
 
-/**
- * Track 1 — settings: API-key edit, cloud-consent revocation, and the Theme
- * Showcase launcher (design-review tool).
- */
 @AndroidEntryPoint
 public class SettingsFragment extends Fragment {
 
@@ -42,6 +40,19 @@ public class SettingsFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
         SettingsViewModel viewModel = new ViewModelProvider(this).get(SettingsViewModel.class);
 
+        binding.toolbar.setNavigationOnClickListener(v ->
+                NavHostFragment.findNavController(this).navigateUp());
+
+        String[] themeLabels = getResources().getStringArray(R.array.theme_mode_labels);
+        String[] themeValues = getResources().getStringArray(R.array.theme_mode_values);
+        String[] langLabels = getResources().getStringArray(R.array.stt_language_labels);
+        String[] langValues = getResources().getStringArray(R.array.stt_language_values);
+
+        binding.inputTheme.setAdapter(new ArrayAdapter<>(
+                requireContext(), android.R.layout.simple_list_item_1, themeLabels));
+        binding.inputLanguage.setAdapter(new ArrayAdapter<>(
+                requireContext(), android.R.layout.simple_list_item_1, langLabels));
+
         viewModel.getState().observe(getViewLifecycleOwner(), state -> {
             if (state == null || stateApplied || binding == null) {
                 return;
@@ -50,10 +61,24 @@ public class SettingsFragment extends Fragment {
             binding.textEmail.setText(getString(R.string.settings_signed_in_as, state.email));
             binding.editApiKey.setText(state.apiKey);
             binding.switchConsent.setChecked(state.consent);
-            // Attach the listener only after the initial value is applied so
-            // restoring state doesn't immediately re-write the store.
             binding.switchConsent.setOnCheckedChangeListener(
                     (button, checked) -> viewModel.setCloudConsent(checked));
+
+            int themeIndex = indexOf(themeValues, state.themeMode, 0);
+            binding.inputTheme.setText(themeLabels[themeIndex], false);
+            binding.inputTheme.setOnItemClickListener((parent, v, position, id) -> {
+                if (position >= 0 && position < themeValues.length) {
+                    viewModel.setThemeMode(themeValues[position]);
+                }
+            });
+
+            int langIndex = indexOf(langValues, state.language, 0);
+            binding.inputLanguage.setText(langLabels[langIndex], false);
+            binding.inputLanguage.setOnItemClickListener((parent, v, position, id) -> {
+                if (position >= 0 && position < langValues.length) {
+                    viewModel.setSttLanguage(langValues[position]);
+                }
+            });
         });
 
         viewModel.getApiKeyError().observe(getViewLifecycleOwner(), error -> {
@@ -75,6 +100,18 @@ public class SettingsFragment extends Fragment {
 
         binding.buttonThemeShowcase.setOnClickListener(v ->
                 startActivity(new Intent(requireContext(), ThemeShowcaseActivity.class)));
+    }
+
+    private static int indexOf(@NonNull String[] values, @Nullable String target, int fallback) {
+        if (target == null) {
+            return fallback;
+        }
+        for (int i = 0; i < values.length; i++) {
+            if (target.equals(values[i])) {
+                return i;
+            }
+        }
+        return fallback;
     }
 
     @Override

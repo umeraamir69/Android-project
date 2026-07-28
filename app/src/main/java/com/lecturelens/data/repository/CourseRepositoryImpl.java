@@ -42,6 +42,16 @@ public class CourseRepositoryImpl implements CourseRepository {
         return dao.insert(toEntity(course));
     }
 
+    @Override
+    public void rename(long id, @NonNull String name) {
+        dao.updateName(id, name);
+    }
+
+    @Override
+    public void delete(long id) {
+        dao.deleteById(id);
+    }
+
     // ---- Mapping ----
 
     @NonNull

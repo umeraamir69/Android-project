@@ -1,6 +1,7 @@
 package com.lecturelens.ui.lecture;
 
 import android.view.LayoutInflater;
+import android.view.View;
 import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
@@ -17,6 +18,7 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * Track 5 — transcript segments; highlights the active row and seeks on tap.
+ * Shows a speaker chip when STT diarization assigned a tag.
  */
 public class TranscriptAdapter
         extends ListAdapter<TranscriptSegment, TranscriptAdapter.SegmentViewHolder> {
@@ -38,6 +40,7 @@ public class TranscriptAdapter
                                                   @NonNull TranscriptSegment newItem) {
                     return oldItem.getStartMs() == newItem.getStartMs()
                             && oldItem.getEndMs() == newItem.getEndMs()
+                            && oldItem.getSpeakerTag() == newItem.getSpeakerTag()
                             && oldItem.getText().equals(newItem.getText());
                 }
             };
@@ -91,6 +94,13 @@ public class TranscriptAdapter
             this.segment = segment;
             binding.textTimestamp.setText(formatTimestamp(segment.getStartMs()));
             binding.textSegment.setText(segment.getText());
+            if (segment.getSpeakerTag() > 0) {
+                binding.textSpeaker.setVisibility(View.VISIBLE);
+                binding.textSpeaker.setText(binding.getRoot().getContext().getString(
+                        R.string.transcript_speaker_label, segment.getSpeakerTag()));
+            } else {
+                binding.textSpeaker.setVisibility(View.GONE);
+            }
             int bg = active
                     ? ContextCompat.getColor(binding.getRoot().getContext(),
                     R.color.md_secondary_container)

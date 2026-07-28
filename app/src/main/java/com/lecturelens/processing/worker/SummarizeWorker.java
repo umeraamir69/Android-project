@@ -38,6 +38,14 @@ public class SummarizeWorker extends Worker {
         com.lecturelens.core.Result<com.lecturelens.domain.model.Notes> result = useCase.execute(lectureId);
 
         setProgressAsync(new Data.Builder().putInt(WorkerKeys.PROGRESS_PERCENT, 100).build());
-        return WorkerResultMapper.fromDomainResult(lectureId, result);
+        androidx.work.ListenableWorker.Result mapped =
+                WorkerResultMapper.fromDomainResult(lectureId, result);
+        // At most one automatic retry for transient 5xx — never loop on quota.
+        if (mapped instanceof androidx.work.ListenableWorker.Result.Retry
+                && getRunAttemptCount() >= 1) {
+            return WorkerResultMapper.failure(
+                    "Notes generation failed after a retry. Tap Retry notes.");
+        }
+        return mapped;
     }
 }

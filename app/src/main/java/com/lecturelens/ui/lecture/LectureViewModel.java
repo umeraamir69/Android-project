@@ -8,16 +8,30 @@ import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.SavedStateHandle;
 
+import com.lecturelens.core.AppExecutors;
 import com.lecturelens.core.BaseViewModel;
+import com.lecturelens.data.prefs.UserSettingsStore;
+import com.lecturelens.data.remote.PipelineErrorStore;
+import com.lecturelens.domain.model.Course;
+import com.lecturelens.domain.model.Handout;
 import com.lecturelens.domain.model.Lecture;
+import com.lecturelens.domain.model.LectureStatus;
 import com.lecturelens.domain.model.Notes;
 import com.lecturelens.domain.model.TranscriptSegment;
+import com.lecturelens.domain.repository.ConsentGate;
+import com.lecturelens.domain.repository.CourseRepository;
+import com.lecturelens.domain.repository.HandoutRepository;
 import com.lecturelens.domain.repository.LectureRepository;
 import com.lecturelens.domain.repository.LlmRepository;
+import com.lecturelens.domain.repository.NotesQaRepository;
 import com.lecturelens.domain.repository.TranscriptionRepository;
+import com.lecturelens.domain.usecase.ExportFormat;
 import com.lecturelens.domain.usecase.ExportLectureUseCase;
+import com.lecturelens.domain.usecase.ExportResult;
+import com.lecturelens.processing.PipelineOrchestrator;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -35,43 +49,78 @@ public class LectureViewModel extends BaseViewModel<LectureDetail> {
 
     private final long lectureId;
     private final ExportLectureUseCase exportLectureUseCase;
+    private final PipelineErrorStore errorStore;
+    private final LectureRepository lectureRepository;
+    private final CourseRepository courseRepository;
+    private final PipelineOrchestrator orchestrator;
+    private final ConsentGate consentGate;
+    private final UserSettingsStore userSettings;
+    private final AppExecutors executors;
+    private final NotesQaRepository notesQaRepository;
+    private final HandoutRepository handoutRepository;
 
     private final LiveData<Lecture> lectureLive;
     private final LiveData<List<TranscriptSegment>> segmentsLive;
     private final LiveData<Notes> notesLive;
+    private final LiveData<List<Course>> coursesLive;
+    private final LiveData<List<Handout>> handoutsLive;
 
     private final Observer<Lecture> lectureObserver;
     private final Observer<List<TranscriptSegment>> segmentsObserver;
     private final Observer<Notes> notesObserver;
+    private final Observer<List<Course>> coursesObserver;
 
     @Nullable private Lecture latestLecture;
     @Nullable private List<TranscriptSegment> latestSegments;
     @Nullable private Notes latestNotes;
+    @Nullable private List<Course> latestCourses;
     private boolean lectureResolved;
 
     private final MutableLiveData<Integer> activeSegmentIndex = new MutableLiveData<>(-1);
-    private final MutableLiveData<File> exportFile = new MutableLiveData<>();
+    private final MutableLiveData<ExportResult> exportResult = new MutableLiveData<>();
+    private final MutableLiveData<String> cloudShareCode = new MutableLiveData<>();
     private final MutableLiveData<String> messageEvent = new MutableLiveData<>();
+    private final MutableLiveData<String> aiAnswer = new MutableLiveData<>();
+    private final MutableLiveData<Boolean> aiLoading = new MutableLiveData<>(false);
 
     private long pendingSeekMs = -1L;
 
     @Inject
     public LectureViewModel(@NonNull SavedStateHandle savedStateHandle,
                             @NonNull LectureRepository lectureRepository,
+                            @NonNull CourseRepository courseRepository,
                             @NonNull TranscriptionRepository transcriptionRepository,
                             @NonNull LlmRepository llmRepository,
-                            @NonNull ExportLectureUseCase exportLectureUseCase) {
+                            @NonNull ExportLectureUseCase exportLectureUseCase,
+                            @NonNull PipelineErrorStore errorStore,
+                            @NonNull PipelineOrchestrator orchestrator,
+                            @NonNull ConsentGate consentGate,
+                            @NonNull UserSettingsStore userSettings,
+                            @NonNull AppExecutors executors,
+                            @NonNull NotesQaRepository notesQaRepository,
+                            @NonNull HandoutRepository handoutRepository) {
         Long id = savedStateHandle.get("lectureId");
         this.lectureId = id != null ? id : -1L;
         Long seek = savedStateHandle.get("seekMs");
         this.pendingSeekMs = seek != null ? seek : -1L;
         this.exportLectureUseCase = exportLectureUseCase;
+        this.errorStore = errorStore;
+        this.lectureRepository = lectureRepository;
+        this.courseRepository = courseRepository;
+        this.orchestrator = orchestrator;
+        this.consentGate = consentGate;
+        this.userSettings = userSettings;
+        this.executors = executors;
+        this.notesQaRepository = notesQaRepository;
+        this.handoutRepository = handoutRepository;
 
         setLoading();
 
         lectureLive = lectureRepository.observeById(lectureId);
         segmentsLive = transcriptionRepository.observeSegments(lectureId);
         notesLive = llmRepository.observeNotes(lectureId);
+        coursesLive = courseRepository.observeAll();
+        handoutsLive = handoutRepository.observeHandouts(lectureId);
 
         lectureObserver = value -> {
             lectureResolved = true;
@@ -86,10 +135,11 @@ public class LectureViewModel extends BaseViewModel<LectureDetail> {
             latestNotes = value;
             rebuild();
         };
-
+        coursesObserver = value -> latestCourses = value;
         lectureLive.observeForever(lectureObserver);
         segmentsLive.observeForever(segmentsObserver);
         notesLive.observeForever(notesObserver);
+        coursesLive.observeForever(coursesObserver);
     }
 
     @NonNull
@@ -98,13 +148,66 @@ public class LectureViewModel extends BaseViewModel<LectureDetail> {
     }
 
     @NonNull
-    public LiveData<File> getExportFile() {
-        return exportFile;
+    public LiveData<ExportResult> getExportResult() {
+        return exportResult;
+    }
+
+    @NonNull
+    public LiveData<String> getCloudShareCode() {
+        return cloudShareCode;
     }
 
     @NonNull
     public LiveData<String> getMessageEvent() {
         return messageEvent;
+    }
+
+    @NonNull
+    public LiveData<String> getAiAnswer() {
+        return aiAnswer;
+    }
+
+    @NonNull
+    public LiveData<Boolean> getAiLoading() {
+        return aiLoading;
+    }
+
+    @NonNull
+    public LiveData<List<Handout>> getHandouts() {
+        return handoutsLive;
+    }
+
+    public void askAboutNotes(@Nullable String question) {
+        aiLoading.setValue(true);
+        notesQaRepository.ask(lectureId, question != null ? question : "",
+                new NotesQaRepository.Callback() {
+                    @Override
+                    public void onAnswer(@NonNull String answer) {
+                        aiLoading.postValue(false);
+                        aiAnswer.postValue(answer);
+                    }
+
+                    @Override
+                    public void onError(@NonNull String message) {
+                        aiLoading.postValue(false);
+                        messageEvent.postValue(message);
+                    }
+                });
+    }
+
+    public void addHandoutImage(@NonNull File imageFile, @NonNull String mimeType) {
+        handoutRepository.addHandoutImage(lectureId, imageFile, mimeType,
+                new HandoutRepository.HandoutCallback() {
+                    @Override
+                    public void onAdded(@NonNull Handout handout) {
+                        messageEvent.postValue("Handout scanned and saved");
+                    }
+
+                    @Override
+                    public void onError(@NonNull String message) {
+                        messageEvent.postValue(message);
+                    }
+                });
     }
 
     public long getLectureId() {
@@ -141,16 +244,100 @@ public class LectureViewModel extends BaseViewModel<LectureDetail> {
     }
 
     public void export() {
-        exportLectureUseCase.execute(lectureId, new ExportLectureUseCase.Callback() {
+        share(ExportFormat.MARKDOWN, false);
+    }
+
+    public void share(@NonNull ExportFormat format, boolean preferWhatsApp) {
+        exportLectureUseCase.execute(lectureId, format, preferWhatsApp,
+                new ExportLectureUseCase.Callback() {
+                    @Override
+                    public void onExported(@NonNull ExportResult result) {
+                        exportResult.postValue(result);
+                    }
+
+                    @Override
+                    public void onError(@NonNull String message) {
+                        messageEvent.postValue(message);
+                    }
+                });
+    }
+
+    public void shareToCloud() {
+        exportLectureUseCase.publishToCloud(lectureId, new ExportLectureUseCase.CloudCallback() {
             @Override
-            public void onExported(@NonNull File markdownFile) {
-                exportFile.postValue(markdownFile);
+            public void onPublished(@NonNull String shareCode) {
+                cloudShareCode.postValue(shareCode);
             }
 
             @Override
             public void onError(@NonNull String message) {
                 messageEvent.postValue(message);
             }
+        });
+    }
+
+    /**
+     * Re-runs processing for this lecture.
+     * <ul>
+     *   <li>If a transcript already exists → notes only (no STT replay).</li>
+     *   <li>Otherwise → full Transcribe → Summarize chain.</li>
+     * </ul>
+     */
+    public void retranscribe() {
+        Lecture lecture = latestLecture;
+        if (lecture == null) {
+            messageEvent.postValue("Lecture not found");
+            return;
+        }
+        String path = lecture.getAudioPath();
+        if (path == null || path.trim().isEmpty() || !new File(path).isFile()) {
+            messageEvent.postValue("No audio file to transcribe.");
+            return;
+        }
+        if (!consentGate.hasCloudConsent()) {
+            messageEvent.postValue("Turn on cloud consent in Settings to re-transcribe.");
+            return;
+        }
+        final String audioPath = path;
+        final boolean hasTranscript = latestSegments != null && !latestSegments.isEmpty();
+        final String language = userSettings.getSttLanguage();
+        executors.diskIO().execute(() -> {
+            errorStore.clear(lectureId);
+            if (hasTranscript) {
+                lectureRepository.updateStatus(lectureId, LectureStatus.SUMMARIZING);
+                orchestrator.enqueueSummarizeOnly(lectureId);
+                messageEvent.postValue("Retrying notes with your current API key…");
+            } else {
+                lectureRepository.updateStatus(lectureId, LectureStatus.TRANSCRIBING);
+                orchestrator.enqueue(lectureId, audioPath, language);
+                messageEvent.postValue("Re-transcription started…");
+            }
+        });
+    }
+
+    /** Renames this lecture (shown in Library and the toolbar title). */
+    public void renameTitle(@NonNull String rawTitle) {
+        String title = rawTitle.trim();
+        if (title.isEmpty()) {
+            return;
+        }
+        executors.diskIO().execute(() -> lectureRepository.updateTitle(lectureId, title));
+    }
+
+    /** Real categories for the move picker (excludes Uncategorized). */
+    @NonNull
+    public List<Course> getCoursesSnapshot() {
+        if (latestCourses == null) {
+            return new ArrayList<>();
+        }
+        return new ArrayList<>(latestCourses);
+    }
+
+    /** Moves this lecture to a category, or Uncategorized when {@code courseId == -1}. */
+    public void moveToCourse(long courseId, @NonNull String categoryLabel) {
+        executors.diskIO().execute(() -> {
+            lectureRepository.updateCourseId(lectureId, courseId);
+            messageEvent.postValue("Moved to " + categoryLabel);
         });
     }
 
@@ -171,7 +358,8 @@ public class LectureViewModel extends BaseViewModel<LectureDetail> {
                 && notes.getActionItems().isEmpty()) {
             notes = null;
         }
-        setSuccess(new LectureDetail(latestLecture, latestSegments, notes));
+        setSuccess(new LectureDetail(
+                latestLecture, latestSegments, notes, errorStore.get(lectureId)));
     }
 
     /**
@@ -206,6 +394,7 @@ public class LectureViewModel extends BaseViewModel<LectureDetail> {
         lectureLive.removeObserver(lectureObserver);
         segmentsLive.removeObserver(segmentsObserver);
         notesLive.removeObserver(notesObserver);
+        coursesLive.removeObserver(coursesObserver);
         super.onCleared();
     }
 }

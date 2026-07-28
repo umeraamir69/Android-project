@@ -13,9 +13,9 @@ import java.io.IOException;
 /**
  * Track 3 — self-contained {@link MediaRecorder} wrapper.
  *
- * <p>Captures lecture audio as <b>M4A / AAC, 16 kHz mono</b> (arch doc §1.2 —
- * matched to Cloud Speech-to-Text's preferred single-channel low-sample-rate
- * input, which keeps upload size and STT cost down).
+ * <p>Captures lecture audio as <b>M4A / AAC, 16 kHz mono</b> so ExoPlayer can
+ * play it on emulators (AMR-WB decode is broken on many AVD images). Speech-to-Text
+ * v1 receives a LINEAR16 PCM conversion of this file.
  *
  * <p><b>No Hilt.</b> This class is deliberately framework-light so it can be
  * unit-tested on a plain JVM: all real {@link MediaRecorder} interaction sits
@@ -235,7 +235,8 @@ public class AudioRecorder {
         public void prepareAndStart(@NonNull File output) throws IOException {
             MediaRecorder r = newMediaRecorder();
             r.setAudioSource(MediaRecorder.AudioSource.MIC);
-            r.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);   // .m4a container
+            // AAC/M4A — plays on emulator ExoPlayer; STT gets a LINEAR16 conversion.
+            r.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
             r.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
             r.setAudioSamplingRate(SAMPLE_RATE_HZ);
             r.setAudioChannels(CHANNEL_COUNT);

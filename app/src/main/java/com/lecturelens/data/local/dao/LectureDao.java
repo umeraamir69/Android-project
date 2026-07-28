@@ -31,6 +31,16 @@ public interface LectureDao {
     @Query("UPDATE lectures SET audio_path = :audioPath WHERE id = :id")
     void updateAudioPath(long id, @Nullable String audioPath);
 
+    @Query("UPDATE lectures SET course_id = :courseId WHERE id = :id")
+    void updateCourseId(long id, long courseId);
+
+    @Query("UPDATE lectures SET title = :title WHERE id = :id")
+    void updateTitle(long id, @NonNull String title);
+
+    /** Moves every lecture in a course to Uncategorized ({@code courseId = -1}). */
+    @Query("UPDATE lectures SET course_id = -1 WHERE course_id = :courseId")
+    void clearCourseId(long courseId);
+
     @Query("SELECT id FROM lectures WHERE audio_path = :audioPath LIMIT 1")
     long findIdByAudioPath(@NonNull String audioPath);
 

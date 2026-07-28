@@ -99,15 +99,18 @@ public class UploadViewModelTest {
     }
 
     @Test
-    public void stop_savesAndReachesSaved() {
+    public void stop_promptsForTitle_thenSaves() {
         vm.onRecordClicked();
         vm.onPermissionResult(true);
         clock[0] = 2_000L;
         useCase.succeedWith = 77L;
         vm.onStopClicked();
+        assertTrue(vm.getRecordingState().getValue() instanceof RecordingState.Naming);
+        vm.onTitleConfirmed("Week 8 notes");
         RecordingState state = vm.getRecordingState().getValue();
         assertTrue(state instanceof RecordingState.Saved);
         assertEquals(77L, ((RecordingState.Saved) state).lectureId);
+        assertEquals("Week 8 notes", useCase.lastTitle);
     }
 
     @Test
@@ -116,6 +119,7 @@ public class UploadViewModelTest {
         vm.onPermissionResult(true);
         useCase.failWith = "disk full";
         vm.onStopClicked();
+        vm.onTitleSkipped();
         assertTrue(vm.getRecordingState().getValue() instanceof RecordingState.Idle);
         UiState<Long> ui = vm.getUiState().getValue();
         assertTrue(ui instanceof UiState.Error);
@@ -128,7 +132,10 @@ public class UploadViewModelTest {
         assertTrue(vm.getRecordingState().getValue() instanceof RecordingState.Importing);
         useCase.succeedWith = 12L;
         vm.onImported("/tmp/imported.m4a", 60_000L);
+        assertTrue(vm.getRecordingState().getValue() instanceof RecordingState.Naming);
+        vm.onTitleConfirmed("Imported lecture");
         assertTrue(vm.getRecordingState().getValue() instanceof RecordingState.Saved);
+        assertEquals("Imported lecture", useCase.lastTitle);
     }
 
     @Test
@@ -162,9 +169,11 @@ public class UploadViewModelTest {
     private static final class FakeUseCase extends RecordLectureUseCase {
         Long succeedWith;
         String failWith;
+        String lastTitle;
 
         @Override
         public void execute(@NonNull Request request, @NonNull Callback callback) {
+            lastTitle = request.title;
             if (failWith != null) {
                 callback.onError(failWith);
             } else {

@@ -1,6 +1,7 @@
 package com.lecturelens.ui.upload;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
@@ -9,36 +10,22 @@ import androidx.lifecycle.SavedStateHandle;
 import com.lecturelens.core.BaseViewModel;
 import com.lecturelens.data.audio.AudioFileFactory;
 import com.lecturelens.data.audio.AudioRecorder;
+import com.lecturelens.data.prefs.UserSettingsStore;
+import com.lecturelens.domain.model.Course;
+import com.lecturelens.domain.repository.CourseRepository;
 import com.lecturelens.domain.usecase.RecordLectureUseCase;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
 
 import javax.inject.Inject;
 
 import dagger.hilt.android.lifecycle.HiltViewModel;
 
 /**
- * Track 3 — drives the Upload screen.
- *
- * <p>Two channels:
- * <ul>
- *   <li><b>{@link #getRecordingState()}</b> — the capture machine from
- *       {@code diagrams/02_audio_recording_state.puml}: Idle → CheckingPermission →
- *       Recording ⇄ Paused → Saving → Saved, plus PermissionDenied and Importing.
- *       This carries the live timer + waveform amplitude while recording.</li>
- *   <li><b>inherited {@code getUiState()}</b> ({@link BaseViewModel}&lt;Long&gt;) —
- *       used only as the one-shot <i>error</i> surface for save failures
- *       ({@code setError}); the positive terminal is {@link RecordingState.Saved}
- *       which carries the new lecture id to navigate to. (T = {@link Long} so the
- *       team can move navigation onto {@code setSuccess(lectureId)} later if
- *       preferred.)</li>
- * </ul>
- *
- * <p>Framework-light for testability: capture goes through {@link AudioRecorder}
- * (its own {@code Recorder} seam), the timer loop through {@link Ticker}, and the
- * target file through {@link AudioFileFactory} — so the whole machine runs on a
- * plain JVM with fakes.
+ * Track 3 — drives the Upload screen (record / import + category selection).
  */
 @HiltViewModel
 public class UploadViewModel extends BaseViewModel<Long> {
@@ -46,15 +33,21 @@ public class UploadViewModel extends BaseViewModel<Long> {
     /** Nav argument key (see nav_graph.xml upload destination). */
     public static final String ARG_COURSE_ID = "courseId";
 
+    /** Same sentinel as Library — lectures with no course. */
+    public static final long UNCATEGORIZED_COURSE_ID = -1L;
+
     /** Timer/waveform refresh cadence while recording. */
     private static final long TICK_INTERVAL_MS = 100L;
 
     private final AudioRecorder recorder;
     private final RecordLectureUseCase recordLecture;
     private final AudioFileFactory fileFactory;
+    private final UserSettingsStore userSettings;
     private final Ticker ticker;
-    private final long courseId;
 
+    private final LiveData<List<Course>> courses;
+    private final MutableLiveData<Long> selectedCourseId;
+    private final MutableLiveData<String> selectedLanguage;
     private final MutableLiveData<RecordingState> recordingState =
             new MutableLiveData<>(RecordingState.idle());
 
@@ -62,8 +55,11 @@ public class UploadViewModel extends BaseViewModel<Long> {
     public UploadViewModel(@NonNull AudioRecorder recorder,
                            @NonNull RecordLectureUseCase recordLecture,
                            @NonNull AudioFileFactory fileFactory,
+                           @NonNull UserSettingsStore userSettings,
+                           @NonNull CourseRepository courseRepository,
                            @NonNull SavedStateHandle savedStateHandle) {
-        this(recorder, recordLecture, fileFactory, new HandlerTicker(), savedStateHandle);
+        this(recorder, recordLecture, fileFactory, userSettings, new HandlerTicker(),
+                courseRepository.observeAll(), savedStateHandle);
     }
 
     @VisibleForTesting
@@ -72,12 +68,28 @@ public class UploadViewModel extends BaseViewModel<Long> {
                            @NonNull AudioFileFactory fileFactory,
                            @NonNull Ticker ticker,
                            @NonNull SavedStateHandle savedStateHandle) {
+        this(recorder, recordLecture, fileFactory, null, ticker,
+                new MutableLiveData<>(Collections.emptyList()), savedStateHandle);
+    }
+
+    private UploadViewModel(@NonNull AudioRecorder recorder,
+                            @NonNull RecordLectureUseCase recordLecture,
+                            @NonNull AudioFileFactory fileFactory,
+                            @Nullable UserSettingsStore userSettings,
+                            @NonNull Ticker ticker,
+                            @NonNull LiveData<List<Course>> courses,
+                            @NonNull SavedStateHandle savedStateHandle) {
         this.recorder = recorder;
         this.recordLecture = recordLecture;
         this.fileFactory = fileFactory;
+        this.userSettings = userSettings;
         this.ticker = ticker;
+        this.courses = courses;
         Long arg = savedStateHandle.get(ARG_COURSE_ID);
-        this.courseId = arg != null ? arg : -1L;
+        long initial = arg != null ? arg : UNCATEGORIZED_COURSE_ID;
+        this.selectedCourseId = new MutableLiveData<>(initial);
+        String lang = userSettings != null ? userSettings.getSttLanguage() : "en-US";
+        this.selectedLanguage = new MutableLiveData<>(lang);
     }
 
     @NonNull
@@ -85,16 +97,51 @@ public class UploadViewModel extends BaseViewModel<Long> {
         return recordingState;
     }
 
+    @NonNull
+    public LiveData<List<Course>> getCourses() {
+        return courses;
+    }
+
+    @NonNull
+    public LiveData<Long> getSelectedCourseId() {
+        return selectedCourseId;
+    }
+
+    public void selectCourse(long courseId) {
+        selectedCourseId.setValue(courseId);
+    }
+
+    public long currentCourseId() {
+        Long value = selectedCourseId.getValue();
+        return value != null ? value : UNCATEGORIZED_COURSE_ID;
+    }
+
+    @NonNull
+    public LiveData<String> getSelectedLanguage() {
+        return selectedLanguage;
+    }
+
+    public void selectLanguage(@NonNull String languageCode) {
+        selectedLanguage.setValue(languageCode);
+        if (userSettings != null) {
+            userSettings.setSttLanguage(languageCode);
+        }
+    }
+
+    @NonNull
+    public String currentLanguage() {
+        String value = selectedLanguage.getValue();
+        return value != null && !value.isEmpty() ? value : "en-US";
+    }
+
     // ---- Record path ----
 
-    /** Tap Record. Idle → CheckingPermission (Fragment then requests the permission). */
     public void onRecordClicked() {
         if (recordingState.getValue() instanceof RecordingState.Idle) {
             recordingState.postValue(RecordingState.checkingPermission());
         }
     }
 
-    /** Result of the RECORD_AUDIO request. */
     public void onPermissionResult(boolean granted) {
         if (granted) {
             startRecording();
@@ -103,12 +150,10 @@ public class UploadViewModel extends BaseViewModel<Long> {
         }
     }
 
-    /** Retry from PermissionDenied → re-request. */
     public void onPermissionRetry() {
         recordingState.postValue(RecordingState.checkingPermission());
     }
 
-    /** Cancel from PermissionDenied → back to Idle. */
     public void onPermissionCancel() {
         recordingState.postValue(RecordingState.idle());
     }
@@ -128,10 +173,9 @@ public class UploadViewModel extends BaseViewModel<Long> {
         }
     }
 
-    /** Tap Stop → finalize + save + enqueue. */
     public void onStopClicked() {
         if (recorder.getState() == AudioRecorder.State.IDLE) {
-            return; // nothing recording
+            return;
         }
         ticker.stop();
         final AudioRecorder.Result result;
@@ -142,7 +186,7 @@ public class UploadViewModel extends BaseViewModel<Long> {
             recordingState.postValue(RecordingState.idle());
             return;
         }
-        save(result.file.getAbsolutePath(), result.durationMs);
+        promptForTitle(result.file.getAbsolutePath(), result.durationMs);
     }
 
     private void startRecording() {
@@ -169,34 +213,57 @@ public class UploadViewModel extends BaseViewModel<Long> {
 
     // ---- Import path ----
 
-    /** Tap Import. Idle → Importing (Fragment then launches the SAF picker). */
     public void onImportClicked() {
         recordingState.postValue(RecordingState.importing());
     }
 
-    /** SAF file copied + validated by the Fragment. */
     public void onImported(@NonNull String audioPath, long durationMs) {
-        save(audioPath, durationMs);
+        promptForTitle(audioPath, durationMs);
     }
 
-    /** Picker cancelled or file invalid. */
     public void onImportCancelled() {
         recordingState.postValue(RecordingState.idle());
     }
 
+    public void onTitleConfirmed(@NonNull String rawTitle) {
+        RecordingState state = recordingState.getValue();
+        if (!(state instanceof RecordingState.Naming)) {
+            return;
+        }
+        RecordingState.Naming naming = (RecordingState.Naming) state;
+        String title = rawTitle.trim();
+        if (title.isEmpty()) {
+            title = naming.suggestedTitle;
+        }
+        save(title, naming.audioPath, naming.durationMs);
+    }
+
+    public void onTitleSkipped() {
+        RecordingState state = recordingState.getValue();
+        if (!(state instanceof RecordingState.Naming)) {
+            return;
+        }
+        RecordingState.Naming naming = (RecordingState.Naming) state;
+        save(naming.suggestedTitle, naming.audioPath, naming.durationMs);
+    }
+
     // ---- Shared save ----
 
-    private void save(@NonNull String audioPath, long durationMs) {
+    private void promptForTitle(@NonNull String audioPath, long durationMs) {
+        recordingState.postValue(RecordingState.naming(audioPath, durationMs, defaultTitle()));
+    }
+
+    private void save(@NonNull String title, @NonNull String audioPath, long durationMs) {
         recordingState.postValue(RecordingState.saving());
         setLoading();
 
         RecordLectureUseCase.Request request = new RecordLectureUseCase.Request(
-                courseId,
-                defaultTitle(),
+                currentCourseId(),
+                title,
                 audioPath,
                 durationMs,
                 System.currentTimeMillis(),
-                null /* language → orchestrator default */);
+                currentLanguage());
 
         recordLecture.execute(request, new RecordLectureUseCase.Callback() {
             @Override
@@ -223,7 +290,6 @@ public class UploadViewModel extends BaseViewModel<Long> {
     protected void onCleared() {
         super.onCleared();
         ticker.stop();
-        // Release native recorder resources if the screen dies mid-capture.
         if (recorder.getState() != AudioRecorder.State.IDLE) {
             recorder.cancel();
         }

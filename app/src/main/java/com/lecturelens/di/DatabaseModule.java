@@ -6,6 +6,7 @@ import androidx.room.Room;
 
 import com.lecturelens.data.local.LectureLensDatabase;
 import com.lecturelens.data.local.dao.CourseDao;
+import com.lecturelens.data.local.dao.HandoutDao;
 import com.lecturelens.data.local.dao.LectureDao;
 import com.lecturelens.data.local.dao.NotesDao;
 import com.lecturelens.data.local.dao.SearchDao;
@@ -61,5 +62,10 @@ public class DatabaseModule {
     @Provides
     public TranscriptDao provideTranscriptDao(LectureLensDatabase db) {
         return db.transcriptDao();
+    }
+
+    @Provides
+    public HandoutDao provideHandoutDao(LectureLensDatabase db) {
+        return db.handoutDao();
     }
 }

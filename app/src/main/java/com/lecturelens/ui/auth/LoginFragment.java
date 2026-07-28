@@ -19,7 +19,7 @@ import dagger.hilt.android.AndroidEntryPoint;
 /**
  * Track 1 — sign-in: email, Google API key (stored encrypted), and the
  * cloud-processing consent checkbox (arch doc §1.1). Navigates to Library on
- * success; login is popped from the back stack by the nav action.
+ * success to Home; login is popped from the back stack by the nav action.
  */
 @AndroidEntryPoint
 public class LoginFragment extends Fragment {
@@ -63,7 +63,7 @@ public class LoginFragment extends Fragment {
         viewModel.getSignedIn().observe(getViewLifecycleOwner(), signedIn -> {
             if (Boolean.TRUE.equals(signedIn)) {
                 NavHostFragment.findNavController(this)
-                        .navigate(R.id.action_login_to_library);
+                        .navigate(R.id.action_login_to_home);
             }
         });
 

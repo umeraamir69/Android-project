@@ -72,6 +72,8 @@ public class StatusBadgeView extends AppCompatTextView {
                 return R.string.status_indexing;
             case READY:
                 return R.string.status_ready;
+            case SHARED:
+                return R.string.status_shared;
             case FAILED:
             default:
                 return R.string.status_failed;
@@ -83,6 +85,8 @@ public class StatusBadgeView extends AppCompatTextView {
         switch (status) {
             case READY:
                 return com.google.android.material.R.attr.colorPrimaryContainer;
+            case SHARED:
+                return com.google.android.material.R.attr.colorTertiaryContainer;
             case RECORDED:
                 return com.google.android.material.R.attr.colorSecondaryContainer;
             case FAILED:
@@ -97,6 +101,8 @@ public class StatusBadgeView extends AppCompatTextView {
         switch (status) {
             case READY:
                 return com.google.android.material.R.attr.colorOnPrimaryContainer;
+            case SHARED:
+                return com.google.android.material.R.attr.colorOnTertiaryContainer;
             case RECORDED:
                 return com.google.android.material.R.attr.colorOnSecondaryContainer;
             case FAILED:

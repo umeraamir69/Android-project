@@ -54,8 +54,8 @@ public class SearchFragment extends Fragment implements SearchResultsAdapter.Lis
         binding.recyclerResults.setLayoutManager(new LinearLayoutManager(requireContext()));
         binding.recyclerResults.setAdapter(adapter);
 
-        binding.toolbar.setNavigationOnClickListener(v ->
-                NavHostFragment.findNavController(this).navigateUp());
+        // Search is a bottom-nav tab — no up affordance; use tabs to leave.
+        binding.toolbar.setNavigationIcon(null);
 
         binding.inputQuery.addTextChangedListener(new TextWatcher() {
             @Override
@@ -87,14 +87,21 @@ public class SearchFragment extends Fragment implements SearchResultsAdapter.Lis
                     ((UiState.Success<List<SearchResultsAdapter.ListItem>>) state).data;
             adapter.submitList(items);
             boolean empty = items.isEmpty();
-            binding.textEmpty.setVisibility(empty ? View.VISIBLE : View.GONE);
+            binding.emptyState.getRoot().setVisibility(empty ? View.VISIBLE : View.GONE);
             String query = binding.inputQuery.getText() != null
                     ? binding.inputQuery.getText().toString().trim()
                     : "";
             if (empty) {
-                binding.textEmpty.setText(query.isEmpty()
-                        ? R.string.search_prompt
-                        : R.string.search_empty);
+                binding.emptyState.imageEmpty.setImageResource(R.drawable.ill_empty_search);
+                binding.emptyState.textEmptyTitle.setVisibility(View.VISIBLE);
+                binding.emptyState.buttonEmptyCta.setVisibility(View.GONE);
+                if (query.isEmpty()) {
+                    binding.emptyState.textEmptyTitle.setText(R.string.search_prompt_title);
+                    binding.emptyState.textEmptyMessage.setText(R.string.search_prompt);
+                } else {
+                    binding.emptyState.textEmptyTitle.setText(R.string.search_empty_title);
+                    binding.emptyState.textEmptyMessage.setText(R.string.search_empty);
+                }
             }
         } else if (state instanceof UiState.Error) {
             Snackbar.make(binding.getRoot(),

@@ -19,8 +19,9 @@ import javax.inject.Singleton;
 public class ApiKeyProvider {
 
     public static final String GCP_PROJECT_ID = "859176545805";
-    public static final String GEMINI_MODEL_FLASH = "gemini-2.0-flash";
-    public static final String STT_MODEL = "long";
+    /** Alias that tracks the current free-tier Flash model for AI Studio keys. */
+    public static final String GEMINI_MODEL_FLASH = "gemini-flash-latest";
+    public static final String STT_MODEL = "latest_long";
 
     private final CredentialsStore credentials;
 
@@ -38,6 +39,10 @@ public class ApiKeyProvider {
         return nullToEmpty(credentials.getApiKey());
     }
 
+    /**
+     * Prefer {@code GEMINI_API_KEY} from local.properties when set (testing),
+     * otherwise the key saved in Settings / Login.
+     */
     @NonNull
     public String getGeminiApiKey() {
         String fromBuild = nullToEmpty(BuildConfig.GEMINI_API_KEY);

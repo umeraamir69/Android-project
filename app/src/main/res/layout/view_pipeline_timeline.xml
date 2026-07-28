@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/pipeline_timeline"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="16dp"
+    android:orientation="vertical"
+    android:visibility="gone"
+    tools:visibility="visible">
+
+    <!-- Step 1: Transcribe -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingVertical="6dp">
+
+        <FrameLayout
+            android:layout_width="28dp"
+            android:layout_height="28dp">
+
+            <com.google.android.material.progressindicator.CircularProgressIndicator
+                android:id="@+id/step_transcribe_spinner"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_gravity="center"
+                android:indeterminate="true"
+                android:visibility="gone"
+                app:indicatorSize="24dp"
+                app:trackThickness="3dp" />
+
+            <ImageView
+                android:id="@+id/step_transcribe_check"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_gravity="center"
+                android:contentDescription="@null"
+                android:src="@drawable/ic_check_24"
+                android:visibility="gone"
+                app:tint="?attr/colorPrimary" />
+
+            <View
+                android:id="@+id/step_transcribe_dot"
+                android:layout_width="10dp"
+                android:layout_height="10dp"
+                android:layout_gravity="center"
+                android:background="@drawable/bg_course_dot"
+                android:backgroundTint="?attr/colorOutline" />
+        </FrameLayout>
+
+        <TextView
+            android:id="@+id/step_transcribe_label"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_weight="1"
+            android:text="@string/pipeline_step_transcribe"
+            android:textAppearance="?attr/textAppearanceBodyMedium" />
+    </LinearLayout>
+
+    <View
+        android:layout_width="2dp"
+        android:layout_height="12dp"
+        android:layout_marginStart="13dp"
+        android:background="?attr/colorOutlineVariant" />
+
+    <!-- Step 2: Summarize -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingVertical="6dp">
+
+        <FrameLayout
+            android:layout_width="28dp"
+            android:layout_height="28dp">
+
+            <com.google.android.material.progressindicator.CircularProgressIndicator
+                android:id="@+id/step_summarize_spinner"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_gravity="center"
+                android:indeterminate="true"
+                android:visibility="gone"
+                app:indicatorSize="24dp"
+                app:trackThickness="3dp" />
+
+            <ImageView
+                android:id="@+id/step_summarize_check"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_gravity="center"
+                android:contentDescription="@null"
+                android:src="@drawable/ic_check_24"
+                android:visibility="gone"
+                app:tint="?attr/colorPrimary" />
+
+            <View
+                android:id="@+id/step_summarize_dot"
+                android:layout_width="10dp"
+                android:layout_height="10dp"
+                android:layout_gravity="center"
+                android:background="@drawable/bg_course_dot"
+                android:backgroundTint="?attr/colorOutline" />
+        </FrameLayout>
+
+        <TextView
+            android:id="@+id/step_summarize_label"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_weight="1"
+            android:text="@string/pipeline_step_summarize"
+            android:textAppearance="?attr/textAppearanceBodyMedium" />
+    </LinearLayout>
+
+    <View
+        android:layout_width="2dp"
+        android:layout_height="12dp"
+        android:layout_marginStart="13dp"
+        android:background="?attr/colorOutlineVariant" />
+
+    <!-- Step 3: Ready -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingVertical="6dp">
+
+        <FrameLayout
+            android:layout_width="28dp"
+            android:layout_height="28dp">
+
+            <com.google.android.material.progressindicator.CircularProgressIndicator
+                android:id="@+id/step_ready_spinner"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_gravity="center"
+                android:indeterminate="true"
+                android:visibility="gone"
+                app:indicatorSize="24dp"
+                app:trackThickness="3dp" />
+
+            <ImageView
+                android:id="@+id/step_ready_check"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_gravity="center"
+                android:contentDescription="@null"
+                android:src="@drawable/ic_check_24"
+                android:visibility="gone"
+                app:tint="?attr/colorPrimary" />
+
+            <View
+                android:id="@+id/step_ready_dot"
+                android:layout_width="10dp"
+                android:layout_height="10dp"
+                android:layout_gravity="center"
+                android:background="@drawable/bg_course_dot"
+                android:backgroundTint="?attr/colorOutline" />
+        </FrameLayout>
+
+        <TextView
+            android:id="@+id/step_ready_label"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_weight="1"
+            android:text="@string/pipeline_step_ready"
+            android:textAppearance="?attr/textAppearanceBodyMedium" />
+    </LinearLayout>
+
+</LinearLayout>

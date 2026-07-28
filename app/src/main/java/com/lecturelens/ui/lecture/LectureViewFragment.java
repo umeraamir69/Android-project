@@ -5,10 +5,15 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.text.InputType;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.EditText;
+import android.widget.FrameLayout;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.FileProvider;
@@ -17,6 +22,7 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.fragment.NavHostFragment;
 import androidx.viewpager2.adapter.FragmentStateAdapter;
 
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.tabs.TabLayoutMediator;
 import com.lecturelens.R;
@@ -24,7 +30,17 @@ import com.lecturelens.core.UiState;
 import com.lecturelens.core.player.AudioPlaybackController;
 import com.lecturelens.databinding.FragmentLectureViewBinding;
 
+import com.lecturelens.domain.model.Course;
+import com.lecturelens.domain.usecase.ExportFormat;
+import com.lecturelens.domain.usecase.ExportResult;
+import com.lecturelens.ui.library.LibraryViewModel;
+
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.List;
 
 import dagger.hilt.android.AndroidEntryPoint;
 
@@ -46,6 +62,10 @@ public class LectureViewFragment extends Fragment {
     private boolean mediaPrepared;
     @Nullable private String lastPreparedPath;
     private boolean initialSeekApplied;
+    @Nullable private String lastShownPipelineError;
+
+    private final ActivityResultLauncher<String> handoutPicker =
+            registerForActivityResult(new ActivityResultContracts.GetContent(), this::onHandoutPicked);
 
     @Nullable
     @Override
@@ -85,8 +105,25 @@ public class LectureViewFragment extends Fragment {
         binding.toolbar.setNavigationOnClickListener(v ->
                 NavHostFragment.findNavController(this).navigateUp());
         binding.toolbar.setOnMenuItemClickListener(item -> {
-            if (item.getItemId() == R.id.menu_export) {
-                viewModel.export();
+            int id = item.getItemId();
+            if (id == R.id.menu_rename) {
+                showRenameDialog();
+                return true;
+            }
+            if (id == R.id.menu_move) {
+                showMoveDialog();
+                return true;
+            }
+            if (id == R.id.menu_retranscribe) {
+                viewModel.retranscribe();
+                return true;
+            }
+            if (id == R.id.menu_export) {
+                showShareSheet();
+                return true;
+            }
+            if (id == R.id.menu_add_handout) {
+                handoutPicker.launch("image/*");
                 return true;
             }
             return false;
@@ -108,7 +145,8 @@ public class LectureViewFragment extends Fragment {
         }).attach();
 
         viewModel.getUiState().observe(getViewLifecycleOwner(), this::render);
-        viewModel.getExportFile().observe(getViewLifecycleOwner(), this::shareExport);
+        viewModel.getExportResult().observe(getViewLifecycleOwner(), this::dispatchShare);
+        viewModel.getCloudShareCode().observe(getViewLifecycleOwner(), this::showCloudShareCode);
         viewModel.getMessageEvent().observe(getViewLifecycleOwner(), msg -> {
             if (msg != null && binding != null) {
                 Snackbar.make(binding.getRoot(), msg, Snackbar.LENGTH_LONG).show();
@@ -123,6 +161,32 @@ public class LectureViewFragment extends Fragment {
         return playbackController;
     }
 
+    private void maybeShowPipelineErrorDialog(@Nullable String err, boolean hasTranscript) {
+        if (binding == null) {
+            return;
+        }
+        if (err == null || err.isEmpty()) {
+            lastShownPipelineError = null;
+            return;
+        }
+        if (err.equals(lastShownPipelineError)) {
+            return;
+        }
+        lastShownPipelineError = err;
+        int titleRes = hasTranscript
+                ? R.string.pipeline_error_notes_title
+                : R.string.pipeline_error_transcribe_title;
+        int actionRes = hasTranscript
+                ? R.string.action_retry_notes
+                : R.string.action_retranscribe;
+        new MaterialAlertDialogBuilder(requireContext())
+                .setTitle(titleRes)
+                .setMessage(err)
+                .setPositiveButton(R.string.pipeline_error_dismiss, null)
+                .setNeutralButton(actionRes, (d, w) -> viewModel.retranscribe())
+                .show();
+    }
+
     private void render(@NonNull UiState<LectureDetail> state) {
         if (binding == null) {
             return;
@@ -132,8 +196,9 @@ public class LectureViewFragment extends Fragment {
 
         if (state instanceof UiState.Success) {
             LectureDetail detail = ((UiState.Success<LectureDetail>) state).data;
+            maybeShowPipelineErrorDialog(detail.pipelineError, !detail.segments.isEmpty());
             binding.toolbar.setTitle(detail.lecture.getTitle());
-            if (detail.hasAudioPath()) {
+            if (detail.hasPlayableAudio()) {
                 String path = detail.lecture.getAudioPath();
                 if (path != null && !path.equals(lastPreparedPath)) {
                     lastPreparedPath = path;
@@ -177,20 +242,208 @@ public class LectureViewFragment extends Fragment {
         }
     }
 
-    private void shareExport(@Nullable File file) {
-        if (file == null || binding == null) {
+    private void onHandoutPicked(@Nullable Uri uri) {
+        if (uri == null || binding == null) {
             return;
         }
+        try {
+            File dir = new File(requireContext().getFilesDir(), "handouts");
+            if (!dir.exists() && !dir.mkdirs()) {
+                Snackbar.make(binding.getRoot(), R.string.handout_pick_failed, Snackbar.LENGTH_LONG)
+                        .show();
+                return;
+            }
+            String mime = requireContext().getContentResolver().getType(uri);
+            if (mime == null || mime.isEmpty()) {
+                mime = "image/jpeg";
+            }
+            String ext = mime.contains("png") ? ".png"
+                    : mime.contains("webp") ? ".webp" : ".jpg";
+            File out = new File(dir, "handout_" + viewModel.getLectureId()
+                    + "_" + System.currentTimeMillis() + ext);
+            try (InputStream in = requireContext().getContentResolver().openInputStream(uri);
+                 OutputStream os = new FileOutputStream(out)) {
+                if (in == null) {
+                    throw new IllegalStateException("null stream");
+                }
+                byte[] buf = new byte[8192];
+                int n;
+                while ((n = in.read(buf)) >= 0) {
+                    os.write(buf, 0, n);
+                }
+            }
+            viewModel.addHandoutImage(out, mime);
+            // Jump to Notes so the user sees Ask AI + handout context.
+            binding.pager.setCurrentItem(2, true);
+        } catch (Exception e) {
+            Snackbar.make(binding.getRoot(), R.string.handout_pick_failed, Snackbar.LENGTH_LONG)
+                    .show();
+        }
+    }
+
+    private void showShareSheet() {
+        CharSequence[] items = new CharSequence[]{
+                getString(R.string.share_option_text),
+                getString(R.string.share_option_whatsapp),
+                getString(R.string.share_option_markdown),
+                getString(R.string.share_option_pdf),
+                getString(R.string.share_option_doc),
+                getString(R.string.share_option_cloud)
+        };
+        new MaterialAlertDialogBuilder(requireContext())
+                .setTitle(R.string.export_share_title)
+                .setItems(items, (dialog, which) -> {
+                    switch (which) {
+                        case 0:
+                            viewModel.share(ExportFormat.TEXT, false);
+                            break;
+                        case 1:
+                            viewModel.share(ExportFormat.TEXT, true);
+                            break;
+                        case 2:
+                            viewModel.share(ExportFormat.MARKDOWN, false);
+                            break;
+                        case 3:
+                            viewModel.share(ExportFormat.PDF, false);
+                            break;
+                        case 4:
+                            viewModel.share(ExportFormat.DOC, false);
+                            break;
+                        case 5:
+                            viewModel.shareToCloud();
+                            break;
+                        default:
+                            break;
+                    }
+                })
+                .setNegativeButton(R.string.action_cancel, null)
+                .show();
+    }
+
+    private void dispatchShare(@Nullable ExportResult result) {
+        if (result == null || binding == null) {
+            return;
+        }
+        if (result.kind == ExportResult.Kind.TEXT) {
+            shareText(result.text != null ? result.text : "", result.preferWhatsApp);
+        } else if (result.file != null) {
+            shareFile(result.file, result.mimeType != null ? result.mimeType : "*/*");
+        }
+        Snackbar.make(binding.getRoot(), R.string.export_success, Snackbar.LENGTH_SHORT).show();
+    }
+
+    private void shareText(@NonNull String text, boolean preferWhatsApp) {
+        Intent share = new Intent(Intent.ACTION_SEND);
+        share.setType("text/plain");
+        share.putExtra(Intent.EXTRA_TEXT, text);
+        share.putExtra(Intent.EXTRA_SUBJECT, getString(R.string.export_share_title));
+        if (preferWhatsApp) {
+            share.setPackage("com.whatsapp");
+            try {
+                startActivity(share);
+                return;
+            } catch (Exception ignored) {
+                share.setPackage(null);
+            }
+        }
+        startActivity(Intent.createChooser(share, getString(R.string.export_share_title)));
+    }
+
+    private void shareFile(@NonNull File file, @NonNull String mimeType) {
         Uri uri = FileProvider.getUriForFile(
                 requireContext(),
                 requireContext().getPackageName() + ".fileprovider",
                 file);
         Intent share = new Intent(Intent.ACTION_SEND);
-        share.setType("text/markdown");
+        share.setType(mimeType);
         share.putExtra(Intent.EXTRA_STREAM, uri);
         share.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
         startActivity(Intent.createChooser(share, getString(R.string.export_share_title)));
-        Snackbar.make(binding.getRoot(), R.string.export_success, Snackbar.LENGTH_SHORT).show();
+    }
+
+    private void showCloudShareCode(@Nullable String code) {
+        if (code == null || code.isEmpty() || binding == null) {
+            return;
+        }
+        String message = getString(R.string.share_cloud_code_message, code);
+        new MaterialAlertDialogBuilder(requireContext())
+                .setTitle(R.string.share_cloud_code_title)
+                .setMessage(message)
+                .setPositiveButton(R.string.share_cloud_copy, (d, w) -> {
+                    android.content.ClipboardManager clipboard =
+                            (android.content.ClipboardManager) requireContext()
+                                    .getSystemService(android.content.Context.CLIPBOARD_SERVICE);
+                    if (clipboard != null) {
+                        clipboard.setPrimaryClip(
+                                android.content.ClipData.newPlainText("LectureLens code", code));
+                    }
+                    Snackbar.make(binding.getRoot(), R.string.share_cloud_copied,
+                            Snackbar.LENGTH_SHORT).show();
+                })
+                .setNeutralButton(R.string.share_option_whatsapp, (d, w) ->
+                        shareText(getString(R.string.share_cloud_whatsapp_body, code), true))
+                .setNegativeButton(R.string.action_cancel, null)
+                .show();
+    }
+
+    private void showRenameDialog() {
+        UiState<LectureDetail> state = viewModel.getUiState().getValue();
+        if (!(state instanceof UiState.Success)) {
+            return;
+        }
+        String current = ((UiState.Success<LectureDetail>) state).data.lecture.getTitle();
+        final EditText input = new EditText(requireContext());
+        input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
+        input.setHint(R.string.dialog_lecture_title_hint);
+        input.setText(current);
+        input.setSelectAllOnFocus(true);
+
+        int pad = (int) (20 * getResources().getDisplayMetrics().density);
+        FrameLayout container = new FrameLayout(requireContext());
+        FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT);
+        params.leftMargin = pad;
+        params.rightMargin = pad;
+        input.setLayoutParams(params);
+        container.addView(input);
+
+        new MaterialAlertDialogBuilder(requireContext())
+                .setTitle(R.string.dialog_rename_lecture_title)
+                .setView(container)
+                .setNegativeButton(R.string.action_cancel, null)
+                .setPositiveButton(R.string.action_save, (d, w) -> {
+                    CharSequence text = input.getText();
+                    viewModel.renameTitle(text != null ? text.toString() : "");
+                })
+                .show();
+        input.requestFocus();
+    }
+
+    private void showMoveDialog() {
+        List<Course> courses = viewModel.getCoursesSnapshot();
+        if (courses.isEmpty()) {
+            new MaterialAlertDialogBuilder(requireContext())
+                    .setTitle(R.string.dialog_move_lecture_title)
+                    .setMessage(R.string.move_lecture_no_categories)
+                    .setPositiveButton(R.string.pipeline_error_dismiss, null)
+                    .show();
+            return;
+        }
+        List<String> labels = new ArrayList<>(courses.size() + 1);
+        List<Long> ids = new ArrayList<>(courses.size() + 1);
+        labels.add(getString(R.string.library_uncategorized));
+        ids.add(LibraryViewModel.UNCATEGORIZED_COURSE_ID);
+        for (Course course : courses) {
+            labels.add(course.getName());
+            ids.add(course.getId());
+        }
+        new MaterialAlertDialogBuilder(requireContext())
+                .setTitle(R.string.dialog_move_lecture_title)
+                .setItems(labels.toArray(new String[0]), (d, which) ->
+                        viewModel.moveToCourse(ids.get(which), labels.get(which)))
+                .setNegativeButton(R.string.action_cancel, null)
+                .show();
     }
 
     private void startPositionPolling() {

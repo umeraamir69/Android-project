@@ -33,16 +33,32 @@
     <color name="md_on_error_container">#FFDAD6</color>
 
     <!-- Background / surfaces -->
-    <color name="md_background">#1A1C18</color>
+    <color name="md_background">#121410</color>
     <color name="md_on_background">#E2E3DC</color>
-    <color name="md_surface">#1A1C18</color>
+    <color name="md_surface">#121410</color>
     <color name="md_on_surface">#E2E3DC</color>
     <color name="md_surface_variant">#43483E</color>
     <color name="md_on_surface_variant">#C3C8BB</color>
     <color name="md_surface_inverse">#E2E3DC</color>
     <color name="md_on_surface_inverse">#2F312D</color>
+    <color name="md_surface_container_lowest">#0D0F0C</color>
+    <color name="md_surface_container_low">#1A1C18</color>
+    <color name="md_surface_container">#1E201C</color>
+    <color name="md_surface_container_high">#282B26</color>
+    <color name="md_surface_container_highest">#33352F</color>
 
     <!-- Outline -->
     <color name="md_outline">#8D9286</color>
     <color name="md_outline_variant">#43483E</color>
+
+    <!-- Neutral / brand (parity with light so direct @color refs stay valid) -->
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="brand_teal">#8FCB6A</color>
+
+    <!-- Lecture pipeline status colors -->
+    <color name="status_recording">#FFB4AB</color>
+    <color name="status_processing">#94D5B4</color>
+    <color name="status_ready">#8FCB6A</color>
+    <color name="status_failed">#FFB4AB</color>
 </resources>

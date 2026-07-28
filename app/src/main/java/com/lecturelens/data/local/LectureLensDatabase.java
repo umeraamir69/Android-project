@@ -4,11 +4,13 @@ import androidx.room.Database;
 import androidx.room.RoomDatabase;
 
 import com.lecturelens.data.local.dao.CourseDao;
+import com.lecturelens.data.local.dao.HandoutDao;
 import com.lecturelens.data.local.dao.LectureDao;
 import com.lecturelens.data.local.dao.NotesDao;
 import com.lecturelens.data.local.dao.SearchDao;
 import com.lecturelens.data.local.dao.TranscriptDao;
 import com.lecturelens.data.local.entity.CourseEntity;
+import com.lecturelens.data.local.entity.HandoutEntity;
 import com.lecturelens.data.local.entity.LectureEntity;
 import com.lecturelens.data.local.entity.NotesEntity;
 import com.lecturelens.data.local.entity.TranscriptEntity;
@@ -26,8 +28,9 @@ import com.lecturelens.data.local.entity.TranscriptSegmentEntity;
  *
  * <p>Version history:
  * <ul>
- *   <li>1 — initial schema (this file). Pre-release dev builds used a v2
- *       in-memory temp DB; nothing persisted, so we restart at 1.</li>
+ *   <li>1 — initial schema.</li>
+ *   <li>2 — transcript_segments.speaker_tag for STT diarization.</li>
+ *   <li>3 — handouts table (quiz / notes photo OCR).</li>
  * </ul>
  */
 @Database(
@@ -37,9 +40,10 @@ import com.lecturelens.data.local.entity.TranscriptSegmentEntity;
                 TranscriptEntity.class,
                 TranscriptSegmentEntity.class,
                 NotesEntity.class,
-                TranscriptFtsEntity.class
+                TranscriptFtsEntity.class,
+                HandoutEntity.class
         },
-        version = 1,
+        version = 3,
         exportSchema = false
 )
 public abstract class LectureLensDatabase extends RoomDatabase {
@@ -55,4 +59,6 @@ public abstract class LectureLensDatabase extends RoomDatabase {
     public abstract NotesDao notesDao();
 
     public abstract SearchDao searchDao();
+
+    public abstract HandoutDao handoutDao();
 }

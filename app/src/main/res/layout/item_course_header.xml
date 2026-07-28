@@ -4,23 +4,26 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="vertical">
+    android:orientation="vertical"
+    android:paddingBottom="8dp">
 
     <LinearLayout
         android:id="@+id/header_row"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="?attr/selectableItemBackground"
+        android:layout_marginHorizontal="12dp"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/bg_section_header"
         android:gravity="center_vertical"
         android:minHeight="56dp"
         android:orientation="horizontal"
-        android:paddingHorizontal="16dp"
-        android:paddingVertical="8dp">
+        android:paddingHorizontal="12dp"
+        android:paddingVertical="10dp">
 
         <View
             android:id="@+id/view_course_color"
-            android:layout_width="12dp"
-            android:layout_height="12dp"
+            android:layout_width="10dp"
+            android:layout_height="10dp"
             android:layout_marginEnd="12dp"
             android:background="@drawable/bg_course_dot"
             android:importantForAccessibility="no" />
@@ -40,15 +43,28 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
+            android:background="@drawable/bg_count_chip"
+            android:paddingHorizontal="10dp"
+            android:paddingVertical="4dp"
             android:textAppearance="?attr/textAppearanceLabelMedium"
-            android:textColor="?attr/colorOnSurfaceVariant"
-            tools:text="3 lectures" />
+            android:textColor="?attr/colorOnSecondaryContainer"
+            tools:text="3" />
+
+        <ImageButton
+            android:id="@+id/button_course_menu"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="4dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/cd_category_menu"
+            android:src="@drawable/ic_more_vert_24"
+            app:tint="?attr/colorOnSurfaceVariant" />
 
         <ImageView
             android:id="@+id/image_expand"
             android:layout_width="24dp"
             android:layout_height="24dp"
-            android:layout_marginStart="8dp"
+            android:layout_marginStart="2dp"
             android:contentDescription="@string/cd_toggle_course"
             android:src="@drawable/ic_expand_more_24"
             app:tint="?attr/colorOnSurfaceVariant" />
@@ -60,6 +76,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:nestedScrollingEnabled="false"
+        android:paddingTop="4dp"
         tools:itemCount="2"
         tools:listitem="@layout/item_lecture_card" />
 

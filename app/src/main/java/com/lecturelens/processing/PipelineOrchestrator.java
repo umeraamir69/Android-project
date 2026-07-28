@@ -66,16 +66,26 @@ public class PipelineOrchestrator {
      * @param language  BCP-47 code, or {@code null} for {@link #DEFAULT_LANGUAGE}.
      */
     public void enqueue(long lectureId, @NonNull String audioPath, @Nullable String language) {
+        // Kill any stalled / retrying chain for this lecture before starting fresh.
+        cancelLecture(lectureId);
+
         Data input = buildTranscribeInput(lectureId, audioPath, language);
         Constraints network = networkConstraints();
 
         OneTimeWorkRequest transcribe = new OneTimeWorkRequest.Builder(TranscribeWorker.class)
                 .setInputData(input)
                 .setConstraints(network)
+                .addTag("transcribe")
                 .build();
 
+        // Explicit lectureId so Summarize still works even if chain output is empty.
+        Data summarizeInput = new Data.Builder()
+                .putLong(WorkerKeys.KEY_LECTURE_ID, lectureId)
+                .build();
         OneTimeWorkRequest summarize = new OneTimeWorkRequest.Builder(SummarizeWorker.class)
+                .setInputData(summarizeInput)
                 .setConstraints(network)
+                .addTag("summarize")
                 .build();
 
         WorkContinuation chain = workManager
@@ -89,6 +99,38 @@ public class PipelineOrchestrator {
         }
 
         chain.enqueue();
+    }
+
+    /**
+     * Notes-only retry when transcription already succeeded — avoids burning STT
+     * quota and replaying a finished transcribe stage.
+     */
+    public void enqueueSummarizeOnly(long lectureId) {
+        cancelLecture(lectureId);
+        Constraints network = networkConstraints();
+        Data summarizeInput = new Data.Builder()
+                .putLong(WorkerKeys.KEY_LECTURE_ID, lectureId)
+                .build();
+        OneTimeWorkRequest summarize = new OneTimeWorkRequest.Builder(SummarizeWorker.class)
+                .setInputData(summarizeInput)
+                .setConstraints(network)
+                .addTag("summarize")
+                .build();
+        workManager.enqueueUniqueWork(
+                uniqueName(lectureId),
+                ExistingWorkPolicy.REPLACE,
+                summarize);
+    }
+
+    /** Cancel in-flight / queued pipeline work for one lecture. */
+    public void cancelLecture(long lectureId) {
+        workManager.cancelUniqueWork(uniqueName(lectureId));
+    }
+
+    /** Cancel every pipeline job (e.g. after rotating the API key). */
+    public void cancelAll() {
+        workManager.cancelAllWorkByTag("transcribe");
+        workManager.cancelAllWorkByTag("summarize");
     }
 
     /** Unique-work name for a lecture. Package-visible for tests. */

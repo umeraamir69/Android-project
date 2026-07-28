@@ -20,6 +20,8 @@ okhttp = "4.12.0"
 media3 = "1.4.1"
 securityCrypto = "1.1.0-alpha06"
 coreTesting = "2.2.0"
+googleServices = "4.5.0"
+firebaseBom = "34.16.0"
 [libraries]
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 ext-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
@@ -49,6 +51,10 @@ media3-exoplayer = { group = "androidx.media3", name = "media3-exoplayer", versi
 media3-ui        = { group = "androidx.media3", name = "media3-ui", version.ref = "media3" }
 security-crypto = { group = "androidx.security", name = "security-crypto", version.ref = "securityCrypto" }
 core-testing = { group = "androidx.arch.core", name = "core-testing", version.ref = "coreTesting" }
+firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }
+firebase-analytics = { group = "com.google.firebase", name = "firebase-analytics" }
+firebase-firestore = { group = "com.google.firebase", name = "firebase-firestore" }
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 hilt                = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
+google-services     = { id = "com.google.gms.google-services", version.ref = "googleServices" }

@@ -22,4 +22,13 @@ public interface CourseRepository {
 
     /** @return row id of the inserted course. Call on diskIO(). */
     long insert(@NonNull Course course);
+
+    /** Call on diskIO(). */
+    void rename(long id, @NonNull String name);
+
+    /**
+     * Deletes the course row. Callers should move its lectures to Uncategorized
+     * first. Call on diskIO().
+     */
+    void delete(long id);
 }

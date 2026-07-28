@@ -53,6 +53,21 @@ public class LectureWriteRepositoryImpl implements LectureRepository {
         dao.updateAudioPath(id, audioPath);
     }
 
+    @Override
+    public void updateCourseId(long id, long courseId) {
+        dao.updateCourseId(id, courseId);
+    }
+
+    @Override
+    public void updateTitle(long id, @NonNull String title) {
+        dao.updateTitle(id, title);
+    }
+
+    @Override
+    public void clearCourseId(long courseId) {
+        dao.clearCourseId(courseId);
+    }
+
     // ---- Reads (Track 2 — see RepositoryModule facade TODO) ----
 
     @NonNull
