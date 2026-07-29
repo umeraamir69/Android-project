@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "983946917944",
+    "project_id": "lecturelense",
+    "storage_bucket": "lecturelense.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:983946917944:android:7dcac85a8359a210768ecd",
+        "android_client_info": {
+          "package_name": "com.lecturelens"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA5Lx6D8VBtPF27cBuNZX7wldRF_Fe_78E"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -15,4 +15,12 @@ public class NotesJsonPayload {
 
     @SerializedName("actionItems")
     public List<String> actionItems;
+
+    /** Short lecture title suggested from the transcript. */
+    @SerializedName("title")
+    public String title;
+
+    /** Suggested course/category name (may match an existing category). */
+    @SerializedName("category")
+    public String category;
 }

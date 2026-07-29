@@ -3,17 +3,24 @@ package com.lecturelens.domain.repository;
 import androidx.annotation.NonNull;
 
 import com.lecturelens.core.Result;
+import com.lecturelens.domain.model.RagCitation;
+
+import java.util.List;
 
 /**
- * FROZEN Day 0 contract — STRETCH feature (RAG semantic search).
- *
- * MVP binds a no-op stub ({@code EmbeddingRepositoryImpl}, Track 4) so the
- * pipeline can enqueue an EmbeddingsWorker unconditionally; the stub returns
- * success without doing anything.
+ * Stretch RAG — embed lecture chunks and retrieve by cosine similarity.
  */
 public interface EmbeddingRepository {
 
-    /** Blocking — call ONLY from a Worker thread. No-op in MVP. */
+    /** Blocking — call ONLY from a Worker / background thread. */
     @NonNull
-    Result<Void> indexLecture(long lectureId);
+    Result<Boolean> indexLecture(long lectureId);
+
+    /** Embed a free-text query. Blocking. */
+    @NonNull
+    Result<float[]> embedQuery(@NonNull String text);
+
+    /** Top-k similar chunks for a lecture. Blocking. */
+    @NonNull
+    Result<List<RagCitation>> searchSimilar(long lectureId, @NonNull float[] queryVector, int topK);
 }

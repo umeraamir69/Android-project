@@ -46,6 +46,7 @@ public final class CourseSection {
         if (expanded != other.expanded
                 || course.getId() != other.course.getId()
                 || !course.getName().equals(other.course.getName())
+                || !course.getProfessor().equals(other.course.getProfessor())
                 || course.getColor() != other.course.getColor()
                 || lectures.size() != other.lectures.size()) {
             return false;
@@ -58,7 +59,7 @@ public final class CourseSection {
         return true;
     }
 
-    static boolean lectureContentEquals(@NonNull Lecture a, @NonNull Lecture b) {
+    public static boolean lectureContentEquals(@NonNull Lecture a, @NonNull Lecture b) {
         return a.getId() == b.getId()
                 && a.getCourseId() == b.getCourseId()
                 && a.getTitle().equals(b.getTitle())

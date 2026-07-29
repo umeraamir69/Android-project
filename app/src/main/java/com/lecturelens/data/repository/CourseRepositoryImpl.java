@@ -42,13 +42,28 @@ public class CourseRepositoryImpl implements CourseRepository {
         return dao.insert(toEntity(course));
     }
 
+    @Override
+    public void rename(long id, @NonNull String name) {
+        dao.updateName(id, name);
+    }
+
+    @Override
+    public void updateDetails(long id, @NonNull String name, @NonNull String professor) {
+        dao.updateDetails(id, name, professor != null ? professor.trim() : "");
+    }
+
+    @Override
+    public void delete(long id) {
+        dao.deleteById(id);
+    }
+
     // ---- Mapping ----
 
     @NonNull
     private static List<Course> toDomain(@NonNull List<CourseEntity> entities) {
         List<Course> courses = new ArrayList<>(entities.size());
         for (CourseEntity e : entities) {
-            courses.add(new Course(e.id, e.name, e.color, e.createdAt));
+            courses.add(new Course(e.id, e.name, e.color, e.createdAt, e.professor));
         }
         return Collections.unmodifiableList(courses);
     }
@@ -60,6 +75,7 @@ public class CourseRepositoryImpl implements CourseRepository {
         e.name = course.getName();
         e.color = course.getColor();
         e.createdAt = course.getCreatedAt();
+        e.professor = course.getProfessor();
         return e;
     }
 }

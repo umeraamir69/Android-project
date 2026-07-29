@@ -14,5 +14,7 @@ public enum LectureStatus {
     SUMMARIZING,
     INDEXING,
     READY,
-    FAILED
+    FAILED,
+    /** Imported via in-app Firebase share code (notes + transcript, no local audio). */
+    SHARED
 }

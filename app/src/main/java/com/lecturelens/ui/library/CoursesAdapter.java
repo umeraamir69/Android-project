@@ -6,6 +6,7 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.widget.PopupMenu;
 import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.ListAdapter;
@@ -16,14 +17,19 @@ import com.lecturelens.databinding.ItemCourseHeaderBinding;
 import com.lecturelens.domain.model.Course;
 
 /**
- * Track 2 (Daniel). Outer Library list: one expandable section per course,
- * lectures rendered by a nested {@link LecturesAdapter}. Header tap toggles
- * expansion via {@link Listener#onCourseToggled}.
+ * Outer Library list: expandable course sections with nested lectures.
+ * Tap header → expand/collapse. Long-press header → category actions.
  */
 public class CoursesAdapter extends ListAdapter<CourseSection, CoursesAdapter.CourseViewHolder> {
 
     public interface Listener extends LecturesAdapter.Listener {
         void onCourseToggled(long courseId);
+
+        void onRenameCourse(long courseId, @NonNull String currentName, @NonNull String professor);
+
+        void onDeleteCourse(long courseId, @NonNull String currentName);
+
+        void onRecordInCourse(long courseId);
     }
 
     private static final DiffUtil.ItemCallback<CourseSection> DIFF =
@@ -67,38 +73,85 @@ public class CoursesAdapter extends ListAdapter<CourseSection, CoursesAdapter.Co
 
         private final ItemCourseHeaderBinding binding;
         private final LecturesAdapter lecturesAdapter;
+        private final Listener listener;
         private long courseId = -1L;
+        @NonNull private String courseName = "";
+        @NonNull private String courseProfessor = "";
 
         CourseViewHolder(@NonNull ItemCourseHeaderBinding binding,
                          @NonNull Listener listener,
                          @NonNull RecyclerView.RecycledViewPool lecturePool) {
             super(binding.getRoot());
             this.binding = binding;
+            this.listener = listener;
             lecturesAdapter = new LecturesAdapter(listener);
             binding.recyclerLectures.setLayoutManager(
                     new LinearLayoutManager(binding.getRoot().getContext()));
             binding.recyclerLectures.setAdapter(lecturesAdapter);
             binding.recyclerLectures.setRecycledViewPool(lecturePool);
             binding.recyclerLectures.setNestedScrollingEnabled(false);
-            binding.headerRow.setOnClickListener(v -> {
-                if (courseId != -1L) {
-                    listener.onCourseToggled(courseId);
-                }
+            binding.headerRow.setOnClickListener(v -> listener.onCourseToggled(courseId));
+            binding.headerRow.setOnLongClickListener(v -> {
+                showCourseMenu(v);
+                return true;
             });
+            binding.buttonCourseMenu.setOnClickListener(this::showCourseMenu);
+        }
+
+        private void showCourseMenu(@NonNull View anchor) {
+            PopupMenu menu = new PopupMenu(anchor.getContext(), anchor);
+            menu.inflate(R.menu.menu_course_actions);
+            boolean realCourse = courseId != LibraryViewModel.UNCATEGORIZED_COURSE_ID;
+            menu.getMenu().findItem(R.id.action_rename_course).setVisible(realCourse);
+            menu.getMenu().findItem(R.id.action_delete_course).setVisible(realCourse);
+            menu.getMenu().findItem(R.id.action_record_in_course).setVisible(realCourse);
+            if (!realCourse) {
+                return; // Uncategorized has no actions
+            }
+            menu.setOnMenuItemClickListener(item -> {
+                int id = item.getItemId();
+                if (id == R.id.action_rename_course) {
+                    listener.onRenameCourse(courseId, courseName, courseProfessor);
+                    return true;
+                }
+                if (id == R.id.action_delete_course) {
+                    listener.onDeleteCourse(courseId, courseName);
+                    return true;
+                }
+                if (id == R.id.action_record_in_course) {
+                    listener.onRecordInCourse(courseId);
+                    return true;
+                }
+                return false;
+            });
+            menu.show();
         }
 
         void bind(@NonNull CourseSection section) {
             Course course = section.getCourse();
             courseId = course.getId();
+            courseName = course.getName();
+            courseProfessor = course.getProfessor();
+            boolean realCourse = courseId != LibraryViewModel.UNCATEGORIZED_COURSE_ID;
+            binding.buttonCourseMenu.setVisibility(realCourse ? View.VISIBLE : View.GONE);
             binding.textCourseName.setText(
-                    courseId == LibraryViewModel.UNCATEGORIZED_COURSE_ID
-                            ? binding.getRoot().getContext()
-                                    .getString(R.string.library_uncategorized)
-                            : course.getName());
+                    realCourse
+                            ? course.getName()
+                            : binding.getRoot().getContext()
+                                    .getString(R.string.library_uncategorized));
+            if (realCourse && !courseProfessor.isEmpty()) {
+                binding.textCourseProfessor.setVisibility(View.VISIBLE);
+                binding.textCourseProfessor.setText(
+                        binding.getRoot().getContext()
+                                .getString(R.string.course_professor_label, courseProfessor));
+            } else {
+                binding.textCourseProfessor.setVisibility(View.GONE);
+            }
             binding.viewCourseColor.setBackgroundTintList(
                     ColorStateList.valueOf(course.getColor()));
             int count = section.getLectures().size();
-            binding.textLectureCount.setText(
+            binding.textLectureCount.setText(String.valueOf(count));
+            binding.textLectureCount.setContentDescription(
                     binding.getRoot().getResources().getQuantityString(
                             R.plurals.lecture_count, count, count));
             binding.imageExpand.setRotation(section.isExpanded() ? 180f : 0f);

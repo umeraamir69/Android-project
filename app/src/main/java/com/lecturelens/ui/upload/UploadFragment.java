@@ -6,9 +6,14 @@ import android.media.MediaMetadataRetriever;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.text.InputType;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
+import android.widget.AutoCompleteTextView;
+import android.widget.EditText;
+import android.widget.FrameLayout;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -20,17 +25,21 @@ import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.fragment.NavHostFragment;
 
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.lecturelens.R;
 import com.lecturelens.core.AppExecutors;
 import com.lecturelens.core.UiState;
 import com.lecturelens.data.audio.AudioFileFactory;
 import com.lecturelens.data.audio.RecordingService;
 import com.lecturelens.databinding.FragmentUploadBinding;
+import com.lecturelens.domain.model.Course;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 
 import javax.inject.Inject;
@@ -52,6 +61,10 @@ public class UploadFragment extends Fragment {
     @Nullable private FragmentUploadBinding binding;
     private UploadViewModel viewModel;
     private boolean serviceRunning;
+    private boolean namingDialogVisible;
+    @NonNull private final List<Long> categoryIds = new ArrayList<>();
+    @NonNull private final List<String> categoryLabels = new ArrayList<>();
+    @Nullable private ArrayAdapter<String> categoryAdapter;
 
     private final ActivityResultLauncher<String> recordPermissionLauncher =
             registerForActivityResult(new ActivityResultContracts.RequestPermission(),
@@ -80,6 +93,8 @@ public class UploadFragment extends Fragment {
         viewModel = new ViewModelProvider(this).get(UploadViewModel.class);
 
         FragmentUploadBinding b = requireBinding();
+        b.toolbar.setNavigationOnClickListener(v ->
+                NavHostFragment.findNavController(this).navigateUp());
         b.buttonRecord.setOnClickListener(v -> onRecordTapped());
         b.buttonPause.setOnClickListener(v -> onPauseResumeTapped());
         b.buttonStop.setOnClickListener(v -> viewModel.onStopClicked());
@@ -90,8 +105,72 @@ public class UploadFragment extends Fragment {
         b.buttonRetry.setOnClickListener(v -> onRecordTapped());
         b.buttonCancel.setOnClickListener(v -> viewModel.onPermissionCancel());
 
+        categoryAdapter = new ArrayAdapter<>(
+                requireContext(),
+                android.R.layout.simple_list_item_1,
+                categoryLabels);
+        b.inputCategory.setAdapter(categoryAdapter);
+        b.inputCategory.setOnItemClickListener((parent, view1, position, id) -> {
+            if (position >= 0 && position < categoryIds.size()) {
+                viewModel.selectCourse(categoryIds.get(position));
+            }
+        });
+
+        String[] langLabels = getResources().getStringArray(R.array.stt_language_labels);
+        String[] langValues = getResources().getStringArray(R.array.stt_language_values);
+        b.inputLanguage.setAdapter(new ArrayAdapter<>(
+                requireContext(), android.R.layout.simple_list_item_1, langLabels));
+        b.inputLanguage.setOnItemClickListener((parent, view1, position, id) -> {
+            if (position >= 0 && position < langValues.length) {
+                viewModel.selectLanguage(langValues[position]);
+            }
+        });
+        String currentLang = viewModel.currentLanguage();
+        for (int i = 0; i < langValues.length; i++) {
+            if (langValues[i].equals(currentLang)) {
+                b.inputLanguage.setText(langLabels[i], false);
+                break;
+            }
+        }
+
         viewModel.getRecordingState().observe(getViewLifecycleOwner(), this::render);
         viewModel.getUiState().observe(getViewLifecycleOwner(), this::renderSaveState);
+        viewModel.getCourses().observe(getViewLifecycleOwner(), this::bindCategories);
+        viewModel.getSelectedCourseId().observe(getViewLifecycleOwner(), id ->
+                syncCategoryFieldText());
+    }
+
+    private void bindCategories(@Nullable List<Course> courses) {
+        categoryIds.clear();
+        categoryLabels.clear();
+        categoryIds.add(UploadViewModel.UNCATEGORIZED_COURSE_ID);
+        categoryLabels.add(getString(R.string.upload_category_uncategorized));
+        if (courses != null) {
+            for (Course course : courses) {
+                categoryIds.add(course.getId());
+                categoryLabels.add(course.getName());
+            }
+        }
+        if (categoryAdapter != null) {
+            categoryAdapter.notifyDataSetChanged();
+        }
+        // If nav passed a courseId that exists, keep it; otherwise ensure selection is valid.
+        long selected = viewModel.currentCourseId();
+        if (!categoryIds.contains(selected)) {
+            viewModel.selectCourse(UploadViewModel.UNCATEGORIZED_COURSE_ID);
+        }
+        syncCategoryFieldText();
+    }
+
+    private void syncCategoryFieldText() {
+        if (binding == null) {
+            return;
+        }
+        long selected = viewModel.currentCourseId();
+        int index = categoryIds.indexOf(selected);
+        if (index >= 0 && index < categoryLabels.size()) {
+            binding.inputCategory.setText(categoryLabels.get(index), false);
+        }
     }
 
     // ---- User actions ----
@@ -149,14 +228,26 @@ public class UploadFragment extends Fragment {
         boolean paused = state instanceof RecordingState.Paused;
         boolean denied = state instanceof RecordingState.PermissionDenied;
         boolean saving = state instanceof RecordingState.Saving;
+        boolean naming = state instanceof RecordingState.Naming;
         boolean capturing = recording || paused;
+        boolean busy = saving || naming;
 
         // Transport visibility
-        b.buttonRecord.setVisibility(capturing || denied || saving ? View.GONE : View.VISIBLE);
-        b.buttonImport.setVisibility(capturing || denied || saving ? View.GONE : View.VISIBLE);
+        b.buttonRecord.setVisibility(capturing || denied || busy ? View.GONE : View.VISIBLE);
+        b.buttonImport.setVisibility(capturing || denied || busy ? View.GONE : View.VISIBLE);
         b.buttonPause.setVisibility(capturing ? View.VISIBLE : View.GONE);
         b.buttonStop.setVisibility(capturing ? View.VISIBLE : View.GONE);
         b.buttonPause.setText(paused ? R.string.upload_resume : R.string.upload_pause);
+
+        // Category / language pickers — hide while recording so they can't collide
+        // with Pause/Stop in the bottom action bar.
+        boolean showPickers = !capturing && !busy && !denied;
+        b.inputCategoryLayout.setVisibility(showPickers ? View.VISIBLE : View.GONE);
+        b.inputLanguageLayout.setVisibility(showPickers ? View.VISIBLE : View.GONE);
+        b.inputCategory.setEnabled(showPickers);
+        b.inputCategoryLayout.setEnabled(showPickers);
+        b.inputLanguage.setEnabled(showPickers);
+        b.inputLanguageLayout.setEnabled(showPickers);
 
         // Permission-denied section
         int deniedVis = denied ? View.VISIBLE : View.GONE;
@@ -192,10 +283,54 @@ public class UploadFragment extends Fragment {
             stopRecordingService();
         }
 
+        if (naming) {
+            showNameLectureDialog((RecordingState.Naming) state);
+        } else {
+            namingDialogVisible = false;
+        }
+
         // Navigate on save
         if (state instanceof RecordingState.Saved) {
             navigateToLecture(((RecordingState.Saved) state).lectureId);
         }
+    }
+
+    private void showNameLectureDialog(@NonNull RecordingState.Naming naming) {
+        if (namingDialogVisible) {
+            return;
+        }
+        namingDialogVisible = true;
+        final EditText input = new EditText(requireContext());
+        input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
+        input.setHint(R.string.dialog_lecture_title_hint);
+        input.setText(naming.suggestedTitle);
+        input.setSelectAllOnFocus(true);
+
+        int pad = (int) (20 * getResources().getDisplayMetrics().density);
+        FrameLayout container = new FrameLayout(requireContext());
+        FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT);
+        params.leftMargin = pad;
+        params.rightMargin = pad;
+        input.setLayoutParams(params);
+        container.addView(input);
+
+        new MaterialAlertDialogBuilder(requireContext())
+                .setTitle(R.string.dialog_name_lecture_title)
+                .setView(container)
+                .setCancelable(false)
+                .setNegativeButton(R.string.action_use_default_name, (d, w) -> {
+                    namingDialogVisible = false;
+                    viewModel.onTitleSkipped();
+                })
+                .setPositiveButton(R.string.action_save, (d, w) -> {
+                    namingDialogVisible = false;
+                    CharSequence text = input.getText();
+                    viewModel.onTitleConfirmed(text != null ? text.toString() : "");
+                })
+                .show();
+        input.requestFocus();
     }
 
     private void renderSaveState(@Nullable UiState<Long> uiState) {

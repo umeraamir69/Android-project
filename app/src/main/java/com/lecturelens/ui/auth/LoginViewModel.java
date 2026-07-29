@@ -8,72 +8,47 @@ import androidx.lifecycle.ViewModel;
 
 import com.lecturelens.core.AppExecutors;
 import com.lecturelens.data.repository.DatabaseSeeder;
+import com.lecturelens.domain.repository.AuthRepository;
 import com.lecturelens.domain.repository.CredentialsStore;
+import com.lecturelens.domain.repository.LibrarySyncRepository;
 
 import javax.inject.Inject;
 
 import dagger.hilt.android.lifecycle.HiltViewModel;
 
 /**
- * Track 1 — login: email + Google API key + cloud-processing consent
- * (WORK_BREAKDOWN Track 1 Auth). Consent is optional at sign-in; without it
- * recordings are saved locally but never uploaded (arch doc §1.1).
- *
- * <p>On success the store is written, the demo course/lecture is seeded on
- * first run, and {@link #getSignedIn()} fires (login is popped from the back
- * stack, so re-emission after navigation is moot).
+ * Firebase Auth login: Google, email/password, passwordless email link.
+ * Cloud consent is stored locally; API keys live in Settings.
  */
 @HiltViewModel
 public class LoginViewModel extends ViewModel {
 
-    /** Stored values used to prefill the form. */
-    public static final class Prefill {
-        @NonNull public final String email;
-        @NonNull public final String apiKey;
-        public final boolean consent;
-
-        Prefill(@NonNull String email, @NonNull String apiKey, boolean consent) {
-            this.email = email;
-            this.apiKey = apiKey;
-            this.consent = consent;
-        }
-    }
-
+    private final AuthRepository authRepository;
     private final CredentialsStore credentials;
     private final DatabaseSeeder seeder;
+    private final LibrarySyncRepository librarySync;
     private final AppExecutors executors;
 
-    private final MutableLiveData<Prefill> prefill = new MutableLiveData<>();
     private final MutableLiveData<Boolean> loading = new MutableLiveData<>(false);
     private final MutableLiveData<String> emailError = new MutableLiveData<>();
-    private final MutableLiveData<String> apiKeyError = new MutableLiveData<>();
+    private final MutableLiveData<String> passwordError = new MutableLiveData<>();
+    private final MutableLiveData<String> statusMessage = new MutableLiveData<>();
     private final MutableLiveData<Boolean> signedIn = new MutableLiveData<>(false);
 
     @Inject
-    public LoginViewModel(@NonNull CredentialsStore credentials,
+    public LoginViewModel(@NonNull AuthRepository authRepository,
+                          @NonNull CredentialsStore credentials,
                           @NonNull DatabaseSeeder seeder,
+                          @NonNull LibrarySyncRepository librarySync,
                           @NonNull AppExecutors executors) {
+        this.authRepository = authRepository;
         this.credentials = credentials;
         this.seeder = seeder;
+        this.librarySync = librarySync;
         this.executors = executors;
-        // Encrypted prefs are disk-backed — load off the main thread.
-        executors.diskIO().execute(() -> {
-            prefill.postValue(new Prefill(
-                    credentials.getEmail(),
-                    credentials.getApiKey(),
-                    credentials.hasCloudConsent()));
-            // Already signed in → skip the login form and go straight to the
-            // Library (the nav action pops login off the back stack). Sign-out
-            // isn't a feature yet; when it is, it just clears the store.
-            if (credentials.isSignedIn()) {
-                signedIn.postValue(true);
-            }
-        });
-    }
-
-    @NonNull
-    public LiveData<Prefill> getPrefill() {
-        return prefill;
+        if (authRepository.isSignedIn()) {
+            signedIn.setValue(true);
+        }
     }
 
     @NonNull
@@ -81,15 +56,19 @@ public class LoginViewModel extends ViewModel {
         return loading;
     }
 
-    /** Null = clear the field error. */
     @NonNull
     public LiveData<String> getEmailError() {
         return emailError;
     }
 
     @NonNull
-    public LiveData<String> getApiKeyError() {
-        return apiKeyError;
+    public LiveData<String> getPasswordError() {
+        return passwordError;
+    }
+
+    @NonNull
+    public LiveData<String> getStatusMessage() {
+        return statusMessage;
     }
 
     @NonNull
@@ -97,35 +76,129 @@ public class LoginViewModel extends ViewModel {
         return signedIn;
     }
 
-    public void signIn(@Nullable String email, @Nullable String apiKey, boolean consent) {
-        String cleanEmail = email == null ? "" : email.trim();
-        String cleanKey = apiKey == null ? "" : apiKey.trim();
+    public void onGoogleIdToken(@NonNull String idToken, boolean consent) {
+        loading.setValue(true);
+        statusMessage.setValue(null);
+        authRepository.signInWithGoogleIdToken(idToken, afterAuth(consent));
+    }
 
-        boolean valid = true;
-        if (cleanEmail.isEmpty() || !cleanEmail.contains("@")) {
-            emailError.setValue("Enter a valid email");
-            valid = false;
-        } else {
-            emailError.setValue(null);
-        }
-        if (cleanKey.isEmpty()) {
-            apiKeyError.setValue("Enter your Google API key");
-            valid = false;
-        } else {
-            apiKeyError.setValue(null);
-        }
-        if (!valid) {
+    public void signInWithPassword(@Nullable String email,
+                                   @Nullable String password,
+                                   boolean consent) {
+        if (!validateEmailPassword(email, password, true)) {
             return;
         }
-
         loading.setValue(true);
-        executors.diskIO().execute(() -> {
-            credentials.setEmail(cleanEmail);
-            credentials.setApiKey(cleanKey);
-            credentials.setCloudConsent(consent);
-            seeder.seedIfEmpty();
-            loading.postValue(false);
-            signedIn.postValue(true);
+        statusMessage.setValue(null);
+        authRepository.signInWithEmailPassword(email.trim(), password, afterAuth(consent));
+    }
+
+    public void createAccount(@Nullable String email,
+                              @Nullable String password,
+                              boolean consent) {
+        if (!validateEmailPassword(email, password, true)) {
+            return;
+        }
+        if (password.trim().length() < 6) {
+            passwordError.setValue("Password must be at least 6 characters");
+            return;
+        }
+        loading.setValue(true);
+        statusMessage.setValue(null);
+        authRepository.createAccount(email.trim(), password, afterAuth(consent));
+    }
+
+    public void sendMagicLink(@Nullable String email, boolean consent) {
+        if (!validateEmail(email)) {
+            return;
+        }
+        loading.setValue(true);
+        statusMessage.setValue(null);
+        credentials.setCloudConsent(consent);
+        authRepository.sendPasswordlessEmail(email.trim(), new AuthRepository.Callback() {
+            @Override
+            public void onSuccess() {
+                loading.postValue(false);
+                statusMessage.postValue("Check your email for a sign-in link.");
+            }
+
+            @Override
+            public void onError(@NonNull String message) {
+                loading.postValue(false);
+                statusMessage.postValue(message);
+            }
         });
+    }
+
+    public void completeEmailLink(@NonNull String email, @NonNull String link, boolean consent) {
+        loading.setValue(true);
+        authRepository.completePasswordlessSignIn(email, link, afterAuth(consent));
+    }
+
+    @NonNull
+    private AuthRepository.Callback afterAuth(boolean consent) {
+        return new AuthRepository.Callback() {
+            @Override
+            public void onSuccess() {
+                executors.diskIO().execute(() -> {
+                    credentials.setCloudConsent(consent);
+                    seeder.seedIfEmpty();
+                    librarySync.pullAll(new LibrarySyncRepository.Callback() {
+                        @Override
+                        public void onDone() {
+                            librarySync.pushAll(new LibrarySyncRepository.Callback() {
+                                @Override
+                                public void onDone() {
+                                    loading.postValue(false);
+                                    signedIn.postValue(true);
+                                }
+
+                                @Override
+                                public void onError(@NonNull String message) {
+                                    loading.postValue(false);
+                                    signedIn.postValue(true);
+                                }
+                            });
+                        }
+
+                        @Override
+                        public void onError(@NonNull String message) {
+                            loading.postValue(false);
+                            signedIn.postValue(true);
+                        }
+                    });
+                });
+            }
+
+            @Override
+            public void onError(@NonNull String message) {
+                loading.postValue(false);
+                statusMessage.postValue(message);
+            }
+        };
+    }
+
+    private boolean validateEmail(@Nullable String email) {
+        String clean = email == null ? "" : email.trim();
+        if (clean.isEmpty() || !clean.contains("@")) {
+            emailError.setValue("Enter a valid email");
+            return false;
+        }
+        emailError.setValue(null);
+        return true;
+    }
+
+    private boolean validateEmailPassword(@Nullable String email,
+                                          @Nullable String password,
+                                          boolean requirePassword) {
+        boolean ok = validateEmail(email);
+        String pwd = password == null ? "" : password;
+        if (requirePassword && pwd.isEmpty()) {
+            passwordError.setValue("Enter your password");
+            ok = false;
+        } else {
+            passwordError.setValue(null);
+        }
+        return ok;
     }
 }

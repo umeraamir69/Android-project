@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="140dp"
+    android:height="140dp"
+    android:viewportWidth="140"
+    android:viewportHeight="140">
+    <path
+        android:fillColor="#DFE4D7"
+        android:pathData="M70,70m-58,0a58,58 0,1 1,116 0a58,58 0,1 1,-116 0" />
+    <!-- Magnifier -->
+    <path
+        android:fillColor="#9BD67D"
+        android:pathData="M62,36c-14.4,0 -26,11.6 -26,26s11.6,26 26,26 26,-11.6 26,-26 -11.6,-26 -26,-26zM62,42c11,0 20,9 20,20s-9,20 -20,20 -20,-9 -20,-20 9,-20 20,-20z" />
+    <path
+        android:fillColor="#1F4D00"
+        android:pathData="M78.5,78.5l4.2,-4.2 22,22 -4.2,4.2z" />
+    <path
+        android:fillColor="#2E5D4D"
+        android:pathData="M50,58h24v4H50zM54,66h16v4H54z" />
+</vector>

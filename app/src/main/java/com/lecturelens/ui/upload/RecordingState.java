@@ -67,6 +67,19 @@ public abstract class RecordingState {
         private Importing() { }
     }
 
+    /** Audio ready; user is naming the lecture before save. */
+    public static final class Naming extends RecordingState {
+        @NonNull public final String audioPath;
+        public final long durationMs;
+        @NonNull public final String suggestedTitle;
+
+        private Naming(@NonNull String audioPath, long durationMs, @NonNull String suggestedTitle) {
+            this.audioPath = audioPath;
+            this.durationMs = durationMs;
+            this.suggestedTitle = suggestedTitle;
+        }
+    }
+
     /** Persisting the lecture row + enqueuing the pipeline. */
     public static final class Saving extends RecordingState {
         private Saving() { }
@@ -119,6 +132,13 @@ public abstract class RecordingState {
     @NonNull
     public static RecordingState importing() {
         return IMPORTING;
+    }
+
+    @NonNull
+    public static RecordingState naming(@NonNull String audioPath,
+                                        long durationMs,
+                                        @NonNull String suggestedTitle) {
+        return new Naming(audioPath, durationMs, suggestedTitle);
     }
 
     @NonNull

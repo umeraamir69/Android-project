@@ -3,6 +3,7 @@ import java.util.Properties
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.hilt)
+    alias(libs.plugins.google.services)
 }
 
 val localProperties = Properties().apply {
@@ -29,6 +30,12 @@ android {
         // Track 4 — keys from local.properties (gitignored). Empty string if unset.
         buildConfigField("String", "STT_API_KEY", "\"${localProperty("STT_API_KEY")}\"")
         buildConfigField("String", "GEMINI_API_KEY", "\"${localProperty("GEMINI_API_KEY")}\"")
+        // Optional long-audio path: GCS upload + speech:longrunningrecognize
+        buildConfigField("String", "GCS_BUCKET", "\"${localProperty("GCS_BUCKET")}\"")
+        buildConfigField("String", "GCS_OAUTH_TOKEN", "\"${localProperty("GCS_OAUTH_TOKEN")}\"")
+        // Web client ID from Firebase Console → Google Sign-In (client_type: 3)
+        buildConfigField("String", "FIREBASE_WEB_CLIENT_ID",
+                "\"${localProperty("FIREBASE_WEB_CLIENT_ID")}\"")
     }
     buildTypes {
         release {
@@ -82,6 +89,15 @@ dependencies {
     implementation(libs.media3.ui)
     // EncryptedSharedPreferences (Track 1 Auth)
     implementation(libs.security.crypto)
+    // Firebase — BoM pins compatible versions
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.analytics)
+    implementation(libs.firebase.firestore)
+    implementation(libs.firebase.auth)
+    implementation(libs.firebase.storage)
+    implementation(libs.credentials)
+    implementation(libs.credentials.play.services)
+    implementation(libs.googleid)
     testImplementation(libs.junit)
     testImplementation(libs.core.testing)           // Track 3: InstantTaskExecutorRule for LiveData
     androidTestImplementation(libs.espresso.core)

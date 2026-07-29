@@ -1,17 +1,21 @@
 package com.lecturelens.ui.auth;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule;
+import androidx.lifecycle.LiveData;
+import androidx.lifecycle.MutableLiveData;
 
 import com.lecturelens.core.AppExecutors;
 import com.lecturelens.data.repository.DatabaseSeeder;
+import com.lecturelens.domain.model.AuthUser;
+import com.lecturelens.domain.repository.AuthRepository;
 import com.lecturelens.domain.repository.CredentialsStore;
+import com.lecturelens.domain.repository.LibrarySyncRepository;
 
 import org.junit.Before;
 import org.junit.Rule;
@@ -19,123 +23,150 @@ import org.junit.Test;
 
 import java.util.concurrent.Executor;
 
-/**
- * Track 1 — JVM tests for the login flow: validation, persistence, seeding.
- * Everything runs synchronously via direct executors + InstantTaskExecutorRule.
- */
 public class LoginViewModelTest {
 
     @Rule
     public InstantTaskExecutorRule instantExecutor = new InstantTaskExecutorRule();
 
+    private FakeAuth auth;
     private FakeStore store;
     private FakeSeeder seeder;
     private LoginViewModel viewModel;
 
     @Before
     public void setUp() {
+        auth = new FakeAuth();
         store = new FakeStore();
         seeder = new FakeSeeder();
-        viewModel = new LoginViewModel(store, seeder, new DirectExecutors());
-    }
-
-    @Test
-    public void prefill_loadsStoredValues() {
-        store.email = "zee@uni.ca";
-        store.apiKey = "key-123";
-        store.consent = true;
-
-        LoginViewModel vm = new LoginViewModel(store, seeder, new DirectExecutors());
-        LoginViewModel.Prefill prefill = vm.getPrefill().getValue();
-
-        assertNotNull(prefill);
-        assertEquals("zee@uni.ca", prefill.email);
-        assertEquals("key-123", prefill.apiKey);
-        assertTrue(prefill.consent);
+        viewModel = new LoginViewModel(auth, store, seeder, new FakeSync(), new DirectExecutors());
     }
 
     @Test
     public void alreadySignedIn_skipsLogin() {
-        store.email = "zee@uni.ca";
-        store.apiKey = "key-123";
-
-        LoginViewModel vm = new LoginViewModel(store, seeder, new DirectExecutors());
-
+        auth.signedIn = true;
+        LoginViewModel vm = new LoginViewModel(auth, store, seeder, new FakeSync(), new DirectExecutors());
         assertTrue(Boolean.TRUE.equals(vm.getSignedIn().getValue()));
     }
 
     @Test
-    public void notSignedIn_staysOnLogin() {
-        assertFalse(Boolean.TRUE.equals(viewModel.getSignedIn().getValue()));
-    }
-
-    @Test
     public void signIn_rejectsInvalidEmail() {
-        viewModel.signIn("not-an-email", "key-123", false);
-
+        viewModel.signInWithPassword("not-an-email", "secret", false);
         assertNotNull(viewModel.getEmailError().getValue());
         assertFalse(Boolean.TRUE.equals(viewModel.getSignedIn().getValue()));
-        assertEquals("", store.email); // nothing persisted
     }
 
     @Test
-    public void signIn_rejectsEmptyApiKey() {
-        viewModel.signIn("zee@uni.ca", "   ", true);
-
-        assertNotNull(viewModel.getApiKeyError().getValue());
-        assertFalse(Boolean.TRUE.equals(viewModel.getSignedIn().getValue()));
-        assertEquals("", store.apiKey);
-    }
-
-    @Test
-    public void signIn_persistsSeedsAndSignals() {
-        viewModel.signIn(" zee@uni.ca ", " key-123 ", true);
-
-        assertNull(viewModel.getEmailError().getValue());
-        assertNull(viewModel.getApiKeyError().getValue());
-        assertEquals("zee@uni.ca", store.email);   // trimmed
-        assertEquals("key-123", store.apiKey);     // trimmed
+    public void signIn_persistsConsentAndSeeds() {
+        viewModel.signInWithPassword("zee@uni.ca", "secret123", true);
         assertTrue(store.consent);
         assertTrue(seeder.seeded);
         assertTrue(Boolean.TRUE.equals(viewModel.getSignedIn().getValue()));
-        assertFalse(Boolean.TRUE.equals(viewModel.getLoading().getValue()));
     }
 
     @Test
-    public void signIn_withoutConsent_stillSignsIn() {
-        viewModel.signIn("zee@uni.ca", "key-123", false);
-
-        assertFalse(store.consent);
-        assertTrue(Boolean.TRUE.equals(viewModel.getSignedIn().getValue()));
+    public void createAccount_requiresPasswordLength() {
+        viewModel.createAccount("zee@uni.ca", "123", true);
+        assertNotNull(viewModel.getPasswordError().getValue());
+        assertFalse(Boolean.TRUE.equals(viewModel.getSignedIn().getValue()));
     }
 
-    // ---- Fakes ----
+    private static class FakeAuth implements AuthRepository {
+        boolean signedIn;
+
+        @Nullable
+        @Override
+        public AuthUser getCurrentUser() {
+            return signedIn ? new AuthUser("uid", "zee@uni.ca", null) : null;
+        }
+
+        @Override
+        public boolean isSignedIn() {
+            return signedIn;
+        }
+
+        @NonNull
+        @Override
+        public LiveData<AuthUser> observeUser() {
+            return new MutableLiveData<>();
+        }
+
+        @Override
+        public void signInWithGoogleIdToken(@NonNull String idToken, @NonNull Callback callback) {
+            signedIn = true;
+            callback.onSuccess();
+        }
+
+        @Override
+        public void signInWithEmailPassword(@NonNull String email,
+                                           @NonNull String password,
+                                           @NonNull Callback callback) {
+            signedIn = true;
+            callback.onSuccess();
+        }
+
+        @Override
+        public void createAccount(@NonNull String email,
+                                  @NonNull String password,
+                                  @NonNull Callback callback) {
+            signedIn = true;
+            callback.onSuccess();
+        }
+
+        @Override
+        public void sendPasswordlessEmail(@NonNull String email, @NonNull Callback callback) {
+            callback.onSuccess();
+        }
+
+        @Override
+        public boolean isSignInWithEmailLink(@Nullable String link) {
+            return false;
+        }
+
+        @Override
+        public void completePasswordlessSignIn(@NonNull String email,
+                                               @NonNull String emailLink,
+                                               @NonNull Callback callback) {
+            signedIn = true;
+            callback.onSuccess();
+        }
+
+        @Override
+        public void savePendingEmail(@NonNull String email) {
+        }
+
+        @Nullable
+        @Override
+        public String getPendingEmail() {
+            return null;
+        }
+
+        @Override
+        public void signOut() {
+            signedIn = false;
+        }
+    }
 
     private static class FakeStore implements CredentialsStore {
-        String email = "";
-        String apiKey = "";
         boolean consent;
 
         @NonNull
         @Override
         public String getEmail() {
-            return email;
+            return "";
         }
 
         @Override
         public void setEmail(@NonNull String email) {
-            this.email = email;
         }
 
         @NonNull
         @Override
         public String getApiKey() {
-            return apiKey;
+            return "";
         }
 
         @Override
         public void setApiKey(@NonNull String apiKey) {
-            this.apiKey = apiKey;
         }
 
         @Override
@@ -150,7 +181,23 @@ public class LoginViewModelTest {
 
         @Override
         public boolean isSignedIn() {
-            return !email.isEmpty() && !apiKey.isEmpty();
+            return false;
+        }
+    }
+
+    private static class FakeSync implements LibrarySyncRepository {
+        @Override
+        public void pushAll(@NonNull Callback callback) {
+            callback.onDone();
+        }
+
+        @Override
+        public void pullAll(@NonNull Callback callback) {
+            callback.onDone();
+        }
+
+        @Override
+        public void pushLecture(long lectureId) {
         }
     }
 
@@ -164,7 +211,6 @@ public class LoginViewModelTest {
         }
     }
 
-    /** Runs everything on the calling thread. */
     private static class DirectExecutors extends AppExecutors {
         @NonNull
         @Override

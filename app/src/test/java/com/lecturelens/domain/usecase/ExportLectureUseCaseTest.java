@@ -33,6 +33,20 @@ public class ExportLectureUseCaseTest {
         assertTrue(md.contains("## Action items"));
         assertTrue(md.contains("## Transcript"));
         assertTrue(md.contains("Welcome to lifecycle."));
+        assertTrue(md.contains("Exported from"));
+        assertTrue(md.contains("LectureLens"));
+    }
+
+    @Test
+    public void buildMarkdown_includesStudentAttribution() {
+        String md = ExportLectureUseCase.buildMarkdown(
+                "Week 6",
+                "Transcript",
+                null,
+                "### Student / course\n\n- Student: Morgan Lee\n- Professor: Dr. Ada");
+        assertTrue(md.contains("Student: Morgan Lee"));
+        assertTrue(md.contains("Professor: Dr. Ada"));
+        assertTrue(md.contains("## Summary"));
     }
 
     @Test
@@ -43,6 +57,19 @@ public class ExportLectureUseCaseTest {
                 null);
         assertTrue(md.contains("# Empty"));
         assertTrue(md.contains("## Transcript"));
-        assertTrue(!md.contains("## Summary"));
+        assertTrue(md.contains("Just transcript."));
+        assertTrue(md.contains("Exported from"));
+        assertTrue(md.contains("No summary available yet."));
+    }
+
+    @Test
+    public void buildPlainText_includesFooterAndTranscript() {
+        String text = ExportLectureUseCase.buildPlainText(
+                "Demo",
+                "Full transcript here.",
+                null);
+        assertTrue(text.contains("TRANSCRIPT"));
+        assertTrue(text.contains("Full transcript here."));
+        assertTrue(text.contains("Exported from LectureLens"));
     }
 }

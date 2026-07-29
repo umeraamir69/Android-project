@@ -7,6 +7,7 @@ import com.lecturelens.domain.model.Lecture;
 import com.lecturelens.domain.model.Notes;
 import com.lecturelens.domain.model.TranscriptSegment;
 
+import java.io.File;
 import java.util.Collections;
 import java.util.List;
 
@@ -16,18 +17,37 @@ public final class LectureDetail {
     @NonNull public final Lecture lecture;
     @NonNull public final List<TranscriptSegment> segments;
     @Nullable public final Notes notes;
+    @Nullable public final String pipelineError;
 
     public LectureDetail(@NonNull Lecture lecture,
                          @NonNull List<TranscriptSegment> segments,
                          @Nullable Notes notes) {
+        this(lecture, segments, notes, null);
+    }
+
+    public LectureDetail(@NonNull Lecture lecture,
+                         @NonNull List<TranscriptSegment> segments,
+                         @Nullable Notes notes,
+                         @Nullable String pipelineError) {
         this.lecture = lecture;
         this.segments = Collections.unmodifiableList(segments);
         this.notes = notes;
+        this.pipelineError = pipelineError;
     }
 
+    /** True when a path is stored (may still be missing on disk). */
     public boolean hasAudioPath() {
         String path = lecture.getAudioPath();
         return path != null && !path.trim().isEmpty();
+    }
+
+    /** True when the audio file exists and can be handed to ExoPlayer. */
+    public boolean hasPlayableAudio() {
+        String path = lecture.getAudioPath();
+        if (path == null || path.trim().isEmpty()) {
+            return false;
+        }
+        return new File(path).isFile();
     }
 
     public boolean hasNotesContent() {

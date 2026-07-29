@@ -103,11 +103,14 @@ public class NotesAdapter extends ListAdapter<NotesAdapter.NotesRow, NotesAdapte
             switch (row.type) {
                 case HEADING:
                     binding.textHeading.setVisibility(View.VISIBLE);
-                    binding.textHeading.setText(row.text);
+                    binding.textHeading.setText(
+                            com.lecturelens.ui.util.MarkdownSpans.fromLiteMarkdown(row.text));
                     break;
                 case BULLET:
                     binding.textBullet.setVisibility(View.VISIBLE);
-                    binding.textBullet.setText("• " + row.text);
+                    binding.textBullet.setText(
+                            com.lecturelens.ui.util.MarkdownSpans.fromLiteMarkdown(
+                                    "• " + stripLeadingBullet(row.text)));
                     break;
                 case KEY_TERM:
                     binding.chipKeyTerm.setVisibility(View.VISIBLE);
@@ -116,6 +119,18 @@ public class NotesAdapter extends ListAdapter<NotesAdapter.NotesRow, NotesAdapte
                 default:
                     break;
             }
+        }
+
+        @NonNull
+        private static String stripLeadingBullet(@NonNull String text) {
+            String t = text.trim();
+            if (t.startsWith("•")) {
+                return t.substring(1).trim();
+            }
+            if (t.startsWith("- ") || t.startsWith("* ")) {
+                return t.substring(2).trim();
+            }
+            return t;
         }
     }
 

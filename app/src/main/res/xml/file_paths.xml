@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Track 5 — paths exposed via FileProvider for Markdown export shares. -->
+<!-- Paths exposed via FileProvider for export + handout open. -->
 <paths>
     <files-path
         name="exports"
         path="exports/" />
+    <files-path
+        name="handouts"
+        path="handouts/" />
 </paths>

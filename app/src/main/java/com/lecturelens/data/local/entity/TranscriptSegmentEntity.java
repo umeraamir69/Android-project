@@ -5,9 +5,6 @@ import androidx.room.ColumnInfo;
 import androidx.room.Entity;
 import androidx.room.PrimaryKey;
 
-/**
- * TEMP — Track 4 stub entity until Track 1's {@code LectureLensDatabase} lands.
- */
 @Entity(tableName = "transcript_segments")
 public class TranscriptSegmentEntity {
 
@@ -26,4 +23,8 @@ public class TranscriptSegmentEntity {
     @NonNull
     @ColumnInfo(name = "text")
     public String text = "";
+
+    /** STT diarization speaker tag; 0 = unknown / not provided. */
+    @ColumnInfo(name = "speaker_tag", defaultValue = "0")
+    public int speakerTag;
 }

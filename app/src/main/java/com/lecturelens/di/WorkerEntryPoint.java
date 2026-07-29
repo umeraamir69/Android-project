@@ -1,5 +1,6 @@
 package com.lecturelens.di;
 
+import com.lecturelens.domain.repository.EmbeddingRepository;
 import com.lecturelens.domain.usecase.GenerateNotesUseCase;
 import com.lecturelens.domain.usecase.TranscribeAudioUseCase;
 
@@ -17,4 +18,6 @@ public interface WorkerEntryPoint {
     TranscribeAudioUseCase transcribeAudioUseCase();
 
     GenerateNotesUseCase generateNotesUseCase();
+
+    EmbeddingRepository embeddingRepository();
 }

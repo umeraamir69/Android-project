@@ -75,7 +75,8 @@ public class SecureKeyStore implements CredentialsStore {
 
     @Override
     public boolean isSignedIn() {
-        return !getEmail().isEmpty() && !getApiKey().isEmpty();
+        // Identity is Firebase Auth; this flag is legacy — prefer AuthRepository.
+        return !getEmail().isEmpty();
     }
 
     @NonNull

@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    FROZEN Day 0 contract — destinations + args frozen; each track replaces
-    its placeholder Fragment class in place. Add actions one per PR,
-    keep destinations alphabetized after `login` (start destination).
+    Destinations + args. Login is the graph start; after sign-in the user
+    lands on Home (login is popped). Bottom tabs: Home / Library / Search.
 -->
 <navigation xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -13,10 +12,24 @@
         android:name="com.lecturelens.ui.auth.LoginFragment"
         android:label="@string/title_login">
         <action
-            android:id="@+id/action_login_to_library"
-            app:destination="@id/library"
+            android:id="@+id/action_login_to_home"
+            app:destination="@id/home"
             app:popUpTo="@id/login"
             app:popUpToInclusive="true" />
+    </fragment>
+    <fragment
+        android:id="@+id/home"
+        android:name="com.lecturelens.ui.home.HomeFragment"
+        android:label="@string/title_home">
+        <action
+            android:id="@+id/action_home_to_lecture"
+            app:destination="@id/lecture" />
+        <action
+            android:id="@+id/action_home_to_settings"
+            app:destination="@id/settings" />
+        <action
+            android:id="@+id/action_home_to_upload"
+            app:destination="@id/upload" />
     </fragment>
     <fragment
         android:id="@+id/lecture"
@@ -67,7 +80,6 @@
             android:name="courseId"
             android:defaultValue="-1L"
             app:argType="long" />
-        <!-- Track 3: on save, open the new lecture and drop Upload from the back stack. -->
         <action
             android:id="@+id/action_upload_to_lecture"
             app:destination="@id/lecture"

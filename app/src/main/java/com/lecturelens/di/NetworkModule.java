@@ -2,6 +2,7 @@ package com.lecturelens.di;
 
 import com.lecturelens.BuildConfig;
 import com.lecturelens.data.remote.GeminiService;
+import com.lecturelens.data.remote.RateLimitInterceptor;
 import com.lecturelens.data.remote.SpeechToTextService;
 
 import java.util.concurrent.TimeUnit;
@@ -33,7 +34,8 @@ public class NetworkModule {
         OkHttpClient.Builder builder = new OkHttpClient.Builder()
                 .connectTimeout(60, TimeUnit.SECONDS)
                 .readTimeout(120, TimeUnit.SECONDS)
-                .writeTimeout(120, TimeUnit.SECONDS);
+                .writeTimeout(120, TimeUnit.SECONDS)
+                .addInterceptor(new RateLimitInterceptor());
         if (BuildConfig.DEBUG) {
             HttpLoggingInterceptor logging = new HttpLoggingInterceptor();
             logging.setLevel(HttpLoggingInterceptor.Level.BASIC);

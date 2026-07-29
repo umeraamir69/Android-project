@@ -16,8 +16,12 @@ public final class RemoteCallHelper {
     private RemoteCallHelper() {
     }
 
+    /**
+     * Codes that WorkManager should retry. Deliberately excludes 429 — quota
+     * exhaustion retries only burn the free tier faster.
+     */
     public static boolean isRetryableHttpCode(int code) {
-        return code == 429 || code >= 500;
+        return code >= 500;
     }
 
     @NonNull

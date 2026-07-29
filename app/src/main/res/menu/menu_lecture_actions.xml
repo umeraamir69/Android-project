@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:id="@+id/action_rename_lecture"
+        android:title="@string/action_rename_lecture" />
+
+    <item
+        android:id="@+id/action_move_lecture"
+        android:title="@string/action_move_to_category" />
+
+</menu>

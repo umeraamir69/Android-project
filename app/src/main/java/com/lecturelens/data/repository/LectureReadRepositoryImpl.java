@@ -73,4 +73,22 @@ public class LectureReadRepositoryImpl implements LectureRepository {
         throw new UnsupportedOperationException(
                 "Lecture writes are Track 3 (LectureWriteRepositoryImpl)");
     }
+
+    @Override
+    public void updateCourseId(long id, long courseId) {
+        throw new UnsupportedOperationException(
+                "Lecture writes are Track 3 (LectureWriteRepositoryImpl)");
+    }
+
+    @Override
+    public void updateTitle(long id, @NonNull String title) {
+        throw new UnsupportedOperationException(
+                "Lecture writes are Track 3 (LectureWriteRepositoryImpl)");
+    }
+
+    @Override
+    public void clearCourseId(long courseId) {
+        throw new UnsupportedOperationException(
+                "Lecture writes are Track 3 (LectureWriteRepositoryImpl)");
+    }
 }

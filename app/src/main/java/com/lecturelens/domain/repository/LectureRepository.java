@@ -43,4 +43,13 @@ public interface LectureRepository {
 
     /** Call on diskIO() or from a Worker. */
     void updateAudioPath(long id, @Nullable String audioPath);
+
+    /** Assign lecture to a course, or {@code -1} for Uncategorized. Call on diskIO(). */
+    void updateCourseId(long id, long courseId);
+
+    /** Call on diskIO(). */
+    void updateTitle(long id, @NonNull String title);
+
+    /** Moves all lectures in {@code courseId} to Uncategorized. Call on diskIO(). */
+    void clearCourseId(long courseId);
 }
