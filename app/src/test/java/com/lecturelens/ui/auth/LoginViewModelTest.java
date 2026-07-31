@@ -91,12 +91,6 @@ public class LoginViewModelTest {
         }
 
         @Override
-        public void signInWithGoogleIdToken(@NonNull String idToken, @NonNull Callback callback) {
-            signedIn = true;
-            callback.onSuccess();
-        }
-
-        @Override
         public void signInWithEmailPassword(@NonNull String email,
                                            @NonNull String password,
                                            @NonNull Callback callback) {
@@ -110,34 +104,6 @@ public class LoginViewModelTest {
                                   @NonNull Callback callback) {
             signedIn = true;
             callback.onSuccess();
-        }
-
-        @Override
-        public void sendPasswordlessEmail(@NonNull String email, @NonNull Callback callback) {
-            callback.onSuccess();
-        }
-
-        @Override
-        public boolean isSignInWithEmailLink(@Nullable String link) {
-            return false;
-        }
-
-        @Override
-        public void completePasswordlessSignIn(@NonNull String email,
-                                               @NonNull String emailLink,
-                                               @NonNull Callback callback) {
-            signedIn = true;
-            callback.onSuccess();
-        }
-
-        @Override
-        public void savePendingEmail(@NonNull String email) {
-        }
-
-        @Nullable
-        @Override
-        public String getPendingEmail() {
-            return null;
         }
 
         @Override

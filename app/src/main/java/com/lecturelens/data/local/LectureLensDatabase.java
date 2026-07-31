@@ -33,6 +33,7 @@ import com.lecturelens.data.local.entity.TranscriptSegmentEntity;
  *   <li>5 — chat_messages for Ask AI history.</li>
  *   <li>6 — courses.professor for notes attribution.</li>
  *   <li>7 — handouts mime/display_name/remote_url.</li>
+ *   <li>8 — migration path established (no wipe from 7+).</li>
  * </ul>
  */
 @Database(
@@ -47,7 +48,7 @@ import com.lecturelens.data.local.entity.TranscriptSegmentEntity;
                 EmbeddingEntity.class,
                 ChatMessageEntity.class
         },
-        version = 7,
+        version = 8,
         exportSchema = false
 )
 public abstract class LectureLensDatabase extends RoomDatabase {

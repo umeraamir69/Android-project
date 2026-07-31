@@ -19,6 +19,7 @@ import com.lecturelens.data.local.entity.ChatMessageEntity;
 import com.lecturelens.data.local.entity.HandoutEntity;
 import com.lecturelens.data.local.entity.NotesEntity;
 import com.lecturelens.data.local.entity.TranscriptEntity;
+import com.lecturelens.data.prefs.UserSettingsStore;
 import com.lecturelens.data.remote.ApiKeyProvider;
 import com.lecturelens.data.remote.GeminiService;
 import com.lecturelens.data.remote.GeminiSync;
@@ -75,6 +76,7 @@ public class NotesQaRepositoryImpl implements NotesQaRepository, HandoutReposito
     private final ConsentGate consentGate;
     private final EmbeddingRepository embeddingRepository;
     private final HandoutStorageUploader handoutStorageUploader;
+    private final UserSettingsStore settings;
     private final AppExecutors executors;
 
     @Inject
@@ -88,6 +90,7 @@ public class NotesQaRepositoryImpl implements NotesQaRepository, HandoutReposito
                                  @NonNull ConsentGate consentGate,
                                  @NonNull EmbeddingRepository embeddingRepository,
                                  @NonNull HandoutStorageUploader handoutStorageUploader,
+                                 @NonNull UserSettingsStore settings,
                                  @NonNull AppExecutors executors) {
         this.geminiService = geminiService;
         this.apiKeys = apiKeys;
@@ -99,6 +102,7 @@ public class NotesQaRepositoryImpl implements NotesQaRepository, HandoutReposito
         this.consentGate = consentGate;
         this.embeddingRepository = embeddingRepository;
         this.handoutStorageUploader = handoutStorageUploader;
+        this.settings = settings;
         this.executors = executors;
     }
 
@@ -168,15 +172,16 @@ public class NotesQaRepositoryImpl implements NotesQaRepository, HandoutReposito
 
     @NonNull
     private QaAnswer askSync(long lectureId, @NonNull String question) throws IOException {
-        if (!consentGate.hasCloudConsent()) {
-            throw new IOException("Turn on cloud consent in Settings to ask AI.");
-        }
-        if (!apiKeys.hasGeminiKey()) {
-            throw new IOException("Gemini API key is missing. Add it in Settings.");
-        }
         String q = question.trim();
         if (q.isEmpty()) {
             throw new IOException("Type a question about these notes.");
+        }
+        String chatHistory = formatRecentChat(lectureId);
+
+        boolean forceOnDevice = UserSettingsStore.MODE_ON_DEVICE.equals(settings.getProcessingMode());
+        boolean canCloud = consentGate.hasCloudConsent() && apiKeys.hasGeminiKey() && !forceOnDevice;
+        if (!canCloud) {
+            return QaAnswer.plain(askLocally(lectureId, q, chatHistory));
         }
 
         Result<float[]> embedResult = embeddingRepository.embedQuery(q);
@@ -187,17 +192,69 @@ public class NotesQaRepositoryImpl implements NotesQaRepository, HandoutReposito
             if (search instanceof Result.Success) {
                 List<RagCitation> hits = ((Result.Success<List<RagCitation>>) search).data;
                 if (!hits.isEmpty()) {
-                    return askWithRag(q, hits);
+                    return askWithRag(q, hits, chatHistory);
                 }
             }
         }
 
         // Fallback: full-context prompt when embeddings are missing.
-        return QaAnswer.plain(askWithFullContext(lectureId, q));
+        return QaAnswer.plain(askWithFullContext(lectureId, q, chatHistory));
     }
 
     @NonNull
-    private QaAnswer askWithRag(@NonNull String question, @NonNull List<RagCitation> hits)
+    private String askLocally(long lectureId,
+                              @NonNull String question,
+                              @NonNull String chatHistory) {
+        StringBuilder corpus = new StringBuilder();
+        NotesEntity notesEntity = notesDao.getNotesSync(lectureId);
+        Notes notes = notesMapper.toDomain(notesEntity);
+        if (notes != null && notes.getSummary() != null) {
+            corpus.append(notes.getSummary()).append('\n');
+        }
+        TranscriptEntity transcript = transcriptDao.getTranscriptSync(lectureId);
+        if (transcript != null && transcript.fullText != null) {
+            corpus.append(transcript.fullText);
+        }
+        return LocalExtractiveSummarizer.answerLocally(question, corpus.toString(), chatHistory);
+    }
+
+    @NonNull
+    private String formatRecentChat(long lectureId) {
+        // Newest-first; skip the user turn we just inserted (index 0 if role=user).
+        List<ChatMessageEntity> recent = chatDao.getRecentSync(lectureId, 13);
+        if (recent == null || recent.isEmpty()) {
+            return "";
+        }
+        List<ChatMessageEntity> chronological = new ArrayList<>();
+        for (int i = recent.size() - 1; i >= 0; i--) {
+            chronological.add(recent.get(i));
+        }
+        // Drop trailing user message (current question) so it isn't duplicated.
+        if (!chronological.isEmpty()
+                && ChatMessage.ROLE_USER.equals(chronological.get(chronological.size() - 1).role)) {
+            chronological.remove(chronological.size() - 1);
+        }
+        if (chronological.isEmpty()) {
+            return "";
+        }
+        StringBuilder sb = new StringBuilder();
+        sb.append("RECENT CHAT (use for follow-ups; still ground answers in lecture material):\n");
+        for (ChatMessageEntity e : chronological) {
+            String who = ChatMessage.ROLE_USER.equals(e.role) ? "USER" : "ASSISTANT";
+            String text = e.text != null ? e.text.trim() : "";
+            if (text.length() > 600) {
+                text = text.substring(0, 600) + "…";
+            }
+            sb.append(who).append(": ").append(text).append("\n");
+        }
+        sb.append('\n');
+        return sb.toString();
+    }
+
+    @NonNull
+    private QaAnswer askWithRag(@NonNull String question,
+                                @NonNull List<RagCitation> hits,
+                                @NonNull String chatHistory)
             throws IOException {
         StringBuilder ctx = new StringBuilder();
         for (int i = 0; i < hits.size(); i++) {
@@ -209,10 +266,12 @@ public class NotesQaRepositoryImpl implements NotesQaRepository, HandoutReposito
                     .append("\n\n");
         }
         String prompt = "You are LectureLens study assistant using retrieved lecture chunks.\n"
-                + "Answer ONLY using the CHUNKS below. If insufficient, reply exactly: "
+                + "Answer ONLY using the CHUNKS below (and prior chat for context). If insufficient, reply exactly: "
                 + "\"I couldn't find that in these lecture notes.\"\n"
                 + "Cite sources like [1], [2] matching chunk numbers.\n"
-                + "Format with markdown.\n\nCHUNKS:\n" + ctx + "QUESTION:\n" + question;
+                + "Format with markdown.\n\n"
+                + chatHistory
+                + "CHUNKS:\n" + ctx + "QUESTION:\n" + question;
         String answer = callPlainGemini(prompt);
         if (answer.contains("I couldn't find that in these lecture notes")) {
             return QaAnswer.plain(answer);
@@ -221,7 +280,9 @@ public class NotesQaRepositoryImpl implements NotesQaRepository, HandoutReposito
     }
 
     @NonNull
-    private String askWithFullContext(long lectureId, @NonNull String q) throws IOException {
+    private String askWithFullContext(long lectureId,
+                                      @NonNull String q,
+                                      @NonNull String chatHistory) throws IOException {
         NotesEntity notesEntity = notesDao.getNotesSync(lectureId);
         Notes notes = notesMapper.toDomain(notesEntity);
         TranscriptEntity transcript = transcriptDao.getTranscriptSync(lectureId);
@@ -263,11 +324,12 @@ public class NotesQaRepositoryImpl implements NotesQaRepository, HandoutReposito
         }
 
         String prompt = "You are LectureLens study assistant.\n"
-                + "Answer ONLY using the lecture material below.\n"
+                + "Answer ONLY using the lecture material below (and prior chat for follow-ups).\n"
                 + "If the answer is not in the material, reply exactly: "
                 + "\"I couldn't find that in these lecture notes.\"\n"
                 + "Do not use outside knowledge. Do not invent facts.\n"
                 + "Format with markdown: use **bold** for key terms, and - for bullet lists.\n\n"
+                + chatHistory
                 + "MATERIAL:\n" + context + "\nQUESTION:\n" + q;
 
         return callPlainGemini(prompt);

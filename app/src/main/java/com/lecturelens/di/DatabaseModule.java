@@ -5,6 +5,7 @@ import android.content.Context;
 import androidx.room.Room;
 
 import com.lecturelens.data.local.LectureLensDatabase;
+import com.lecturelens.data.local.LectureLensMigrations;
 import com.lecturelens.data.local.dao.ChatDao;
 import com.lecturelens.data.local.dao.CourseDao;
 import com.lecturelens.data.local.dao.EmbeddingDao;
@@ -34,10 +35,9 @@ public class DatabaseModule {
     @Singleton
     public LectureLensDatabase provideDatabase(@ApplicationContext Context context) {
         return Room.databaseBuilder(context, LectureLensDatabase.class, LectureLensDatabase.NAME)
-                // Dev policy until v1 ships: schema changes wipe rather than
-                // migrate. Replace with addMigrations(...) once real user data
-                // exists — see version history in LectureLensDatabase.
-                .fallbackToDestructiveMigration()
+                .addMigrations(LectureLensMigrations.MIGRATION_7_8)
+                // Pre-v7 schemas were demo-only; wipe those rather than invent reverse migrations.
+                .fallbackToDestructiveMigrationFrom(1, 2, 3, 4, 5, 6)
                 .build();
     }
 

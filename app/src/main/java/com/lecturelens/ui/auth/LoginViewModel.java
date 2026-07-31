@@ -16,10 +16,7 @@ import javax.inject.Inject;
 
 import dagger.hilt.android.lifecycle.HiltViewModel;
 
-/**
- * Firebase Auth login: Google, email/password, passwordless email link.
- * Cloud consent is stored locally; API keys live in Settings.
- */
+/** Firebase Auth login: email/password. */
 @HiltViewModel
 public class LoginViewModel extends ViewModel {
 
@@ -76,12 +73,6 @@ public class LoginViewModel extends ViewModel {
         return signedIn;
     }
 
-    public void onGoogleIdToken(@NonNull String idToken, boolean consent) {
-        loading.setValue(true);
-        statusMessage.setValue(null);
-        authRepository.signInWithGoogleIdToken(idToken, afterAuth(consent));
-    }
-
     public void signInWithPassword(@Nullable String email,
                                    @Nullable String password,
                                    boolean consent) {
@@ -106,33 +97,6 @@ public class LoginViewModel extends ViewModel {
         loading.setValue(true);
         statusMessage.setValue(null);
         authRepository.createAccount(email.trim(), password, afterAuth(consent));
-    }
-
-    public void sendMagicLink(@Nullable String email, boolean consent) {
-        if (!validateEmail(email)) {
-            return;
-        }
-        loading.setValue(true);
-        statusMessage.setValue(null);
-        credentials.setCloudConsent(consent);
-        authRepository.sendPasswordlessEmail(email.trim(), new AuthRepository.Callback() {
-            @Override
-            public void onSuccess() {
-                loading.postValue(false);
-                statusMessage.postValue("Check your email for a sign-in link.");
-            }
-
-            @Override
-            public void onError(@NonNull String message) {
-                loading.postValue(false);
-                statusMessage.postValue(message);
-            }
-        });
-    }
-
-    public void completeEmailLink(@NonNull String email, @NonNull String link, boolean consent) {
-        loading.setValue(true);
-        authRepository.completePasswordlessSignIn(email, link, afterAuth(consent));
     }
 
     @NonNull

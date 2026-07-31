@@ -13,16 +13,16 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
-import androidx.navigation.NavController;
-import androidx.navigation.fragment.NavHostFragment;
-import androidx.recyclerview.widget.LinearLayoutManager;
-
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.snackbar.Snackbar;
 import com.lecturelens.R;
 import com.lecturelens.core.UiState;
 import com.lecturelens.databinding.FragmentLibraryBinding;
 import com.lecturelens.domain.model.Course;
+import com.lecturelens.ui.util.AppNavigator;
+import com.lecturelens.ui.util.HelpDialogs;
+import com.lecturelens.ui.util.SectionFeedback;
+import com.lecturelens.ui.util.UiAnimations;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,11 +34,11 @@ import dagger.hilt.android.AndroidEntryPoint;
  * and move/rename lectures. FAB → record (Uncategorized unless opened from a category).
  */
 @AndroidEntryPoint
-public class LibraryFragment extends Fragment implements CoursesAdapter.Listener {
+public class LibraryFragment extends Fragment implements LibraryListAdapter.Listener {
 
     @Nullable private FragmentLibraryBinding binding;
     private LibraryViewModel viewModel;
-    private CoursesAdapter adapter;
+    private LibraryListAdapter adapter;
 
     @Nullable
     @Override
@@ -54,14 +54,15 @@ public class LibraryFragment extends Fragment implements CoursesAdapter.Listener
         super.onViewCreated(view, savedInstanceState);
         viewModel = new ViewModelProvider(this).get(LibraryViewModel.class);
 
-        adapter = new CoursesAdapter(this);
-        binding.recyclerLibrary.setLayoutManager(new LinearLayoutManager(requireContext()));
-        binding.recyclerLibrary.setAdapter(adapter);
+        UiAnimations.animateScreenEnter(binding.getRoot());
+        adapter = new LibraryListAdapter(this);
+        binding.listLibrary.setAdapter(adapter);
+        UiAnimations.bindPressScale(binding.fabRecord);
 
         binding.toolbar.setOnMenuItemClickListener(item -> {
             int id = item.getItemId();
             if (id == R.id.menu_search) {
-                nav().navigate(R.id.action_library_to_search);
+                AppNavigator.openSearchActivity(this);
                 return true;
             }
             if (id == R.id.menu_add_category) {
@@ -69,15 +70,21 @@ public class LibraryFragment extends Fragment implements CoursesAdapter.Listener
                 return true;
             }
             if (id == R.id.menu_settings) {
-                nav().navigate(R.id.action_library_to_settings);
+                AppNavigator.openSettingsActivity(this);
+                return true;
+            }
+            if (id == R.id.menu_help) {
+                HelpDialogs.show(this, getString(R.string.title_library));
                 return true;
             }
             return false;
         });
         binding.fabRecord.setOnClickListener(v ->
-                nav().navigate(R.id.action_library_to_upload));
+                AppNavigator.openUploadActivity(this));
         binding.emptyState.buttonEmptyCta.setOnClickListener(v ->
-                nav().navigate(R.id.action_library_to_upload));
+                AppNavigator.openUploadActivity(this));
+        SectionFeedback.toast(this, getString(R.string.toast_section_ready,
+                getString(R.string.title_library)));
         binding.buttonExpandToggle.setOnClickListener(v -> viewModel.toggleExpandCollapse());
         binding.chipGroupFilter.setOnCheckedStateChangeListener((group, checkedIds) -> {
             if (checkedIds.isEmpty()) {
@@ -111,10 +118,13 @@ public class LibraryFragment extends Fragment implements CoursesAdapter.Listener
 
         if (state instanceof UiState.Success) {
             List<CourseSection> sections = ((UiState.Success<List<CourseSection>>) state).data;
-            adapter.submitList(sections);
+            adapter.submitSections(sections);
             boolean empty = sections.isEmpty();
             binding.emptyState.getRoot().setVisibility(empty ? View.VISIBLE : View.GONE);
-            binding.recyclerLibrary.setVisibility(empty ? View.GONE : View.VISIBLE);
+            binding.listLibrary.setVisibility(empty ? View.GONE : View.VISIBLE);
+            if (!empty) {
+                UiAnimations.playListLayoutAnimation(binding.listLibrary);
+            }
             binding.libraryControls.setVisibility(View.VISIBLE);
             binding.buttonExpandToggle.setVisibility(empty ? View.GONE : View.VISIBLE);
             binding.buttonExpandToggle.setText(viewModel.hasExpandedSection()
@@ -141,14 +151,14 @@ public class LibraryFragment extends Fragment implements CoursesAdapter.Listener
             }
         } else if (state instanceof UiState.Error) {
             binding.emptyState.getRoot().setVisibility(View.GONE);
-            binding.recyclerLibrary.setVisibility(View.VISIBLE);
-            Snackbar.make(binding.getRoot(),
-                    ((UiState.Error<List<CourseSection>>) state).message,
-                    Snackbar.LENGTH_LONG).show();
+            binding.listLibrary.setVisibility(View.VISIBLE);
+            String msg = ((UiState.Error<List<CourseSection>>) state).message;
+            Snackbar.make(binding.getRoot(), msg, Snackbar.LENGTH_LONG).show();
+            SectionFeedback.toast(this, msg);
         }
     }
 
-    // ---- CoursesAdapter.Listener ----
+    // ---- LibraryListAdapter.Listener ----
 
     @Override
     public void onCourseToggled(long courseId) {
@@ -157,9 +167,7 @@ public class LibraryFragment extends Fragment implements CoursesAdapter.Listener
 
     @Override
     public void onLectureClicked(long lectureId) {
-        Bundle args = new Bundle();
-        args.putLong("lectureId", lectureId);
-        nav().navigate(R.id.action_library_to_lecture, args);
+        AppNavigator.openLecture(this, lectureId, -1L);
     }
 
     @Override
@@ -185,9 +193,7 @@ public class LibraryFragment extends Fragment implements CoursesAdapter.Listener
 
     @Override
     public void onRecordInCourse(long courseId) {
-        Bundle args = new Bundle();
-        args.putLong("courseId", courseId);
-        nav().navigate(R.id.action_library_to_upload, args);
+        AppNavigator.openUploadActivity(this);
     }
 
     @Override
@@ -326,11 +332,6 @@ public class LibraryFragment extends Fragment implements CoursesAdapter.Listener
 
     private interface CourseDialogCallback {
         void onResult(@NonNull String name, @NonNull String professor);
-    }
-
-    @NonNull
-    private NavController nav() {
-        return NavHostFragment.findNavController(this);
     }
 
     @Override

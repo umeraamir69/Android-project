@@ -8,6 +8,7 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import com.lecturelens.domain.model.SharedHandout;
 import com.lecturelens.domain.model.SharedNotesPacket;
 import com.lecturelens.domain.repository.CloudShareRepository;
+import com.lecturelens.domain.util.ShareCodes;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -23,8 +24,6 @@ import javax.inject.Singleton;
 public class FirestoreCloudShareRepository implements CloudShareRepository {
 
     private static final String COLLECTION = "shared_notes";
-    private static final String ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-    private static final int CODE_LENGTH = 6;
 
     private final FirebaseFirestore firestore;
     private final Random random = new Random();
@@ -60,13 +59,14 @@ public class FirestoreCloudShareRepository implements CloudShareRepository {
 
     @Override
     public void fetchByCode(@NonNull String shareCode, @NonNull FetchCallback callback) {
-        String code = shareCode.trim().toUpperCase(Locale.US);
+        String code = ShareCodes.normalize(shareCode);
         if (code.isEmpty()) {
             callback.onError("Enter a share code");
             return;
         }
-        if (code.length() != CODE_LENGTH) {
-            callback.onError("Share codes are exactly " + CODE_LENGTH + " characters");
+        if (!ShareCodes.isValidFormat(code)) {
+            callback.onError("Share codes are exactly " + ShareCodes.LENGTH
+                    + " characters (letters/digits, no O/0/I/1)");
             return;
         }
         firestore.collection(COLLECTION).document(code)
@@ -89,9 +89,9 @@ public class FirestoreCloudShareRepository implements CloudShareRepository {
 
     @NonNull
     private String newCode() {
-        StringBuilder sb = new StringBuilder(CODE_LENGTH);
-        for (int i = 0; i < CODE_LENGTH; i++) {
-            sb.append(ALPHABET.charAt(random.nextInt(ALPHABET.length())));
+        StringBuilder sb = new StringBuilder(ShareCodes.LENGTH);
+        for (int i = 0; i < ShareCodes.LENGTH; i++) {
+            sb.append(ShareCodes.ALPHABET.charAt(random.nextInt(ShareCodes.ALPHABET.length())));
         }
         return sb.toString();
     }

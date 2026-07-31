@@ -27,6 +27,7 @@ public class UserSettingsStore {
     private static final String KEY_THEME = "theme_mode";
     private static final String KEY_LANGUAGE = "stt_language";
     private static final String KEY_PROCESSING = "processing_mode";
+    private static final String KEY_APP_LOCALE = "app_locale";
     private static final String KEY_USERNAME = "username";
     private static final String KEY_FULL_NAME = "full_name";
     private static final String KEY_DOB = "date_of_birth";
@@ -87,6 +88,16 @@ public class UserSettingsStore {
 
     public void setProcessingMode(@NonNull String mode) {
         prefs.edit().putString(KEY_PROCESSING, mode).apply();
+    }
+
+    /** UI language: {@code en} or {@code fr}. */
+    @NonNull
+    public String getAppLocale() {
+        return prefs.getString(KEY_APP_LOCALE, "en");
+    }
+
+    public void setAppLocale(@NonNull String languageTag) {
+        prefs.edit().putString(KEY_APP_LOCALE, languageTag).apply();
     }
 
     @NonNull

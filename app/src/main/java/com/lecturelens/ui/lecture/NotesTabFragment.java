@@ -11,6 +11,9 @@ import android.view.inputmethod.EditorInfo;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.FileProvider;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -69,6 +72,20 @@ public class NotesTabFragment extends Fragment implements HandoutsAdapter.Listen
         binding.recyclerChat.setLayoutManager(new LinearLayoutManager(requireContext()));
         binding.recyclerChat.setAdapter(chatAdapter);
 
+        // Lecture screen hides bottom nav; lift Ask bar above gesture / nav inset.
+        final int padH = binding.askBar.getPaddingLeft();
+        final int padTop = binding.askBar.getPaddingTop();
+        final int padBottomBase = binding.askBar.getPaddingBottom();
+        ViewCompat.setOnApplyWindowInsetsListener(binding.askBar, (v, windowInsets) -> {
+            Insets bars = windowInsets.getInsets(
+                    WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.ime());
+            v.setPadding(padH, padTop, padH, padBottomBase + bars.bottom);
+            return windowInsets;
+        });
+        ViewCompat.requestApplyInsets(binding.askBar);
+
+        com.lecturelens.ui.util.SectionFeedback.toast(this,
+                getString(R.string.toast_section_ready, getString(R.string.lecture_tab_notes)));
         binding.buttonAsk.setOnClickListener(v -> submitQuestion());
         binding.buttonClearChat.setOnClickListener(v ->
                 new MaterialAlertDialogBuilder(requireContext())

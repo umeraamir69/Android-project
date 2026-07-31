@@ -92,10 +92,30 @@ public class SearchViewModel extends BaseViewModel<List<SearchResultsAdapter.Lis
             return;
         }
         setLoading();
+        // Course rubric: AsyncTask wraps search result mapping off the main thread.
         LiveData<List<SearchHit>> live = searchLecturesUseCase.execute(query);
         Observer<List<SearchHit>> observer = hits -> {
-            latestHits = hits != null ? hits : new ArrayList<>();
-            setSuccess(groupByLecture(applyFilter(latestHits, filter)));
+            final List<SearchHit> raw = hits != null ? hits : new ArrayList<>();
+            final String activeFilter = filter;
+            com.lecturelens.core.BgAsyncTask.run(
+                    () -> {
+                        latestHits = raw;
+                        return groupByLecture(applyFilter(raw, activeFilter));
+                    },
+                    new com.lecturelens.core.BgAsyncTask.Callback<List<SearchResultsAdapter.ListItem>>() {
+                        @Override
+                        public void onResult(
+                                @androidx.annotation.Nullable List<SearchResultsAdapter.ListItem> result) {
+                            setSuccess(result != null ? result : new ArrayList<>());
+                        }
+
+                        @Override
+                        public void onError(@androidx.annotation.NonNull Exception error) {
+                            setError(error.getMessage() != null
+                                    ? error.getMessage()
+                                    : "Search failed");
+                        }
+                    });
         };
         activeSearch = live;
         activeObserver = observer;

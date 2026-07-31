@@ -12,26 +12,27 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
-import androidx.navigation.NavController;
-import androidx.navigation.fragment.NavHostFragment;
-import androidx.recyclerview.widget.LinearLayoutManager;
 
 import com.google.android.material.snackbar.Snackbar;
 import com.lecturelens.R;
 import com.lecturelens.core.UiState;
 import com.lecturelens.data.local.SearchHit;
 import com.lecturelens.databinding.FragmentSearchBinding;
+import com.lecturelens.ui.util.AppNavigator;
+import com.lecturelens.ui.util.HelpDialogs;
+import com.lecturelens.ui.util.SectionFeedback;
+import com.lecturelens.ui.util.UiAnimations;
 
 import java.util.List;
 
 import dagger.hilt.android.AndroidEntryPoint;
 
 @AndroidEntryPoint
-public class SearchFragment extends Fragment implements SearchResultsAdapter.Listener {
+public class SearchFragment extends Fragment implements SearchListAdapter.Listener {
 
     @Nullable private FragmentSearchBinding binding;
     private SearchViewModel viewModel;
-    private SearchResultsAdapter adapter;
+    private SearchListAdapter adapter;
     @Nullable private ArrayAdapter<String> suggestAdapter;
     private boolean applyingSuggestion;
 
@@ -49,9 +50,17 @@ public class SearchFragment extends Fragment implements SearchResultsAdapter.Lis
         super.onViewCreated(view, savedInstanceState);
         viewModel = new ViewModelProvider(this).get(SearchViewModel.class);
 
-        adapter = new SearchResultsAdapter(this);
-        binding.recyclerResults.setLayoutManager(new LinearLayoutManager(requireContext()));
-        binding.recyclerResults.setAdapter(adapter);
+        UiAnimations.animateScreenEnter(binding.getRoot());
+        adapter = new SearchListAdapter(this);
+        binding.listResults.setAdapter(adapter);
+        binding.toolbar.inflateMenu(R.menu.menu_help);
+        binding.toolbar.setOnMenuItemClickListener(item -> {
+            if (item.getItemId() == R.id.menu_help) {
+                HelpDialogs.show(this, getString(R.string.title_search));
+                return true;
+            }
+            return false;
+        });
         binding.toolbar.setNavigationIcon(null);
 
         suggestAdapter = new ArrayAdapter<>(
@@ -105,6 +114,9 @@ public class SearchFragment extends Fragment implements SearchResultsAdapter.Lis
             }
         });
 
+        SectionFeedback.toast(this, getString(R.string.toast_section_ready,
+                getString(R.string.title_search)));
+
         viewModel.getUiState().observe(getViewLifecycleOwner(), this::render);
         viewModel.getSuggestions().observe(getViewLifecycleOwner(), list -> {
             if (suggestAdapter == null || list == null) {
@@ -133,9 +145,12 @@ public class SearchFragment extends Fragment implements SearchResultsAdapter.Lis
         if (state instanceof UiState.Success) {
             List<SearchResultsAdapter.ListItem> items =
                     ((UiState.Success<List<SearchResultsAdapter.ListItem>>) state).data;
-            adapter.submitList(items);
+            adapter.submit(items);
             boolean empty = items.isEmpty();
             binding.emptyState.getRoot().setVisibility(empty ? View.VISIBLE : View.GONE);
+            if (!empty) {
+                UiAnimations.playListLayoutAnimation(binding.listResults);
+            }
             String query = binding.inputQuery.getText() != null
                     ? binding.inputQuery.getText().toString().trim()
                     : "";
@@ -152,26 +167,19 @@ public class SearchFragment extends Fragment implements SearchResultsAdapter.Lis
                 }
             }
         } else if (state instanceof UiState.Error) {
-            Snackbar.make(binding.getRoot(),
-                    ((UiState.Error<List<SearchResultsAdapter.ListItem>>) state).message,
-                    Snackbar.LENGTH_LONG).show();
+            String msg = ((UiState.Error<List<SearchResultsAdapter.ListItem>>) state).message;
+            Snackbar.make(binding.getRoot(), msg, Snackbar.LENGTH_LONG).show();
+            SectionFeedback.toast(this, msg);
+            SectionFeedback.infoDialog(this, R.string.title_search, msg);
         }
     }
 
     @Override
     public void onHitClicked(@NonNull SearchHit hit) {
-        Bundle args = new Bundle();
-        args.putLong("lectureId", hit.lectureId);
         long seek = hit.startMs >= 0 && SearchHit.SOURCE_TRANSCRIPT.equals(hit.sourceType)
                 ? hit.startMs
                 : -1L;
-        args.putLong("seekMs", seek);
-        nav().navigate(R.id.action_search_to_lecture, args);
-    }
-
-    @NonNull
-    private NavController nav() {
-        return NavHostFragment.findNavController(this);
+        AppNavigator.openLecture(this, hit.lectureId, seek);
     }
 
     @Override

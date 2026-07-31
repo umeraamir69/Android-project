@@ -102,8 +102,13 @@ public class LectureViewFragment extends Fragment {
             }
         });
 
-        binding.toolbar.setNavigationOnClickListener(v ->
-                NavHostFragment.findNavController(this).navigateUp());
+        binding.toolbar.setNavigationOnClickListener(v -> {
+            try {
+                NavHostFragment.findNavController(this).navigateUp();
+            } catch (IllegalStateException e) {
+                requireActivity().finish();
+            }
+        });
         binding.toolbar.setOnMenuItemClickListener(item -> {
             int id = item.getItemId();
             if (id == R.id.menu_rename) {
@@ -132,8 +137,14 @@ public class LectureViewFragment extends Fragment {
                 });
                 return true;
             }
+            if (id == R.id.menu_help) {
+                com.lecturelens.ui.util.HelpDialogs.show(this, getString(R.string.title_lecture));
+                return true;
+            }
             return false;
         });
+        com.lecturelens.ui.util.SectionFeedback.toast(this,
+                getString(R.string.toast_section_ready, getString(R.string.title_lecture)));
 
         binding.pager.setAdapter(new LecturePagerAdapter(this));
         new TabLayoutMediator(binding.tabLayout, binding.pager, (tab, position) -> {

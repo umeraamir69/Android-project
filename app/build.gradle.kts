@@ -33,17 +33,18 @@ android {
         // Optional long-audio path: GCS upload + speech:longrunningrecognize
         buildConfigField("String", "GCS_BUCKET", "\"${localProperty("GCS_BUCKET")}\"")
         buildConfigField("String", "GCS_OAUTH_TOKEN", "\"${localProperty("GCS_OAUTH_TOKEN")}\"")
-        // Web client ID from Firebase Console → Google Sign-In (client_type: 3)
-        buildConfigField("String", "FIREBASE_WEB_CLIENT_ID",
-                "\"${localProperty("FIREBASE_WEB_CLIENT_ID")}\"")
     }
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+        }
+        debug {
+            isMinifyEnabled = false
         }
     }
     compileOptions {
@@ -95,9 +96,6 @@ dependencies {
     implementation(libs.firebase.firestore)
     implementation(libs.firebase.auth)
     implementation(libs.firebase.storage)
-    implementation(libs.credentials)
-    implementation(libs.credentials.play.services)
-    implementation(libs.googleid)
     testImplementation(libs.junit)
     testImplementation(libs.core.testing)           // Track 3: InstantTaskExecutorRule for LiveData
     androidTestImplementation(libs.espresso.core)

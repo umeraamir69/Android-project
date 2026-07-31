@@ -93,8 +93,23 @@ public class UploadFragment extends Fragment {
         viewModel = new ViewModelProvider(this).get(UploadViewModel.class);
 
         FragmentUploadBinding b = requireBinding();
-        b.toolbar.setNavigationOnClickListener(v ->
-                NavHostFragment.findNavController(this).navigateUp());
+        b.toolbar.setNavigationOnClickListener(v -> {
+            try {
+                NavHostFragment.findNavController(this).navigateUp();
+            } catch (IllegalStateException e) {
+                requireActivity().finish();
+            }
+        });
+        b.toolbar.inflateMenu(R.menu.menu_help);
+        b.toolbar.setOnMenuItemClickListener(item -> {
+            if (item.getItemId() == R.id.menu_help) {
+                com.lecturelens.ui.util.HelpDialogs.show(this, getString(R.string.title_upload));
+                return true;
+            }
+            return false;
+        });
+        com.lecturelens.ui.util.SectionFeedback.toast(this,
+                getString(R.string.toast_section_ready, getString(R.string.title_upload)));
         b.buttonRecord.setOnClickListener(v -> onRecordTapped());
         b.buttonPause.setOnClickListener(v -> onPauseResumeTapped());
         b.buttonStop.setOnClickListener(v -> viewModel.onStopClicked());
@@ -291,7 +306,8 @@ public class UploadFragment extends Fragment {
 
         // Navigate on save
         if (state instanceof RecordingState.Saved) {
-            navigateToLecture(((RecordingState.Saved) state).lectureId);
+            com.lecturelens.ui.util.AppNavigator.openLecture(
+                    this, ((RecordingState.Saved) state).lectureId, -1L);
         }
     }
 
@@ -342,10 +358,7 @@ public class UploadFragment extends Fragment {
 
     private void navigateToLecture(long lectureId) {
         stopRecordingService();
-        Bundle args = new Bundle();
-        args.putLong("lectureId", lectureId);
-        NavHostFragment.findNavController(this)
-                .navigate(R.id.action_upload_to_lecture, args);
+        com.lecturelens.ui.util.AppNavigator.openLecture(this, lectureId, -1L);
     }
 
     // ---- Foreground service ----

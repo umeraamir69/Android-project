@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="ui_language_labels">
+        <item>English</item>
+        <item>Français</item>
+    </string-array>
+    <string-array name="theme_mode_labels">
+        <item>Défaut système</item>
+        <item>Clair</item>
+        <item>Sombre</item>
+    </string-array>
+    <string-array name="processing_mode_labels">
+        <item>Cloud (STT Google + Gemini)</item>
+        <item>Sur l’appareil</item>
+        <item>Auto</item>
+    </string-array>
+</resources>
