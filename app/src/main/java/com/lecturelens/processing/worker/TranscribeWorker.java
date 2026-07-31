@@ -49,13 +49,10 @@ public class TranscribeWorker extends Worker {
                 language);
 
         setProgressAsync(new Data.Builder().putInt(WorkerKeys.PROGRESS_PERCENT, 100).build());
-        androidx.work.ListenableWorker.Result mapped =
-                WorkerResultMapper.fromDomainResult(lectureId, result);
-        if (mapped instanceof androidx.work.ListenableWorker.Result.Retry
-                && getRunAttemptCount() >= 1) {
-            return WorkerResultMapper.failure(
-                    "Transcription failed after a retry. Tap Re-transcribe.");
-        }
-        return mapped;
+        return WorkerResultMapper.fromDomainResult(
+                lectureId,
+                result,
+                getRunAttemptCount(),
+                "Transcription failed after a retry. Tap Re-transcribe.");
     }
 }

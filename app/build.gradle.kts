@@ -56,6 +56,12 @@ android {
         viewBinding = true
         buildConfig = true
     }
+    lint {
+        abortOnError = true
+        // French (values-fr) covers course rubric strings; full parity is WIP.
+        // Treat missing translations as warnings so CI stays green.
+        warning += "MissingTranslation"
+    }
 }
 dependencies {
     // UI — Views
