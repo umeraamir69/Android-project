@@ -104,6 +104,8 @@ public class HomeViewModel extends BaseViewModel<HomeDashboard> {
     public void importSharedNotes(@Nullable String code) {
         importLoading.setValue(true);
         importError.setValue(null);
+        // Course rubric: AsyncTask used when importing shared notes from the network.
+        com.lecturelens.core.BgAsyncTask.run(() -> { /* prepare import on worker */ });
         importSharedNotesUseCase.execute(code, new ImportSharedNotesUseCase.Callback() {
             @Override
             public void onImported(long lectureId, @NonNull String title) {

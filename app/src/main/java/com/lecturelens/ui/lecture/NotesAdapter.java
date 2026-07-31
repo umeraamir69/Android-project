@@ -1,24 +1,28 @@
 package com.lecturelens.ui.lecture;
 
+import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.ListAdapter;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.material.chip.Chip;
 import com.lecturelens.databinding.ItemNotesRowBinding;
 import com.lecturelens.domain.model.Notes;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
 /**
- * Track 5 — typed note rows: heading / bullet / key-term chip.
+ * Typed note rows: heading / bullet / wrapping key-term chip group.
  */
 public class NotesAdapter extends ListAdapter<NotesAdapter.NotesRow, NotesAdapter.RowViewHolder> {
 
@@ -31,10 +35,19 @@ public class NotesAdapter extends ListAdapter<NotesAdapter.NotesRow, NotesAdapte
     public static final class NotesRow {
         @NonNull public final RowType type;
         @NonNull public final String text;
+        /** Populated for {@link RowType#KEY_TERM} — all chips in one wrapping row. */
+        @NonNull public final List<String> chips;
 
         public NotesRow(@NonNull RowType type, @NonNull String text) {
+            this(type, text, Collections.emptyList());
+        }
+
+        public NotesRow(@NonNull RowType type,
+                        @NonNull String text,
+                        @NonNull List<String> chips) {
             this.type = type;
             this.text = text;
+            this.chips = List.copyOf(chips);
         }
 
         @Override
@@ -46,12 +59,14 @@ public class NotesAdapter extends ListAdapter<NotesAdapter.NotesRow, NotesAdapte
                 return false;
             }
             NotesRow notesRow = (NotesRow) o;
-            return type == notesRow.type && text.equals(notesRow.text);
+            return type == notesRow.type
+                    && text.equals(notesRow.text)
+                    && chips.equals(notesRow.chips);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(type, text);
+            return Objects.hash(type, text, chips);
         }
     }
 
@@ -60,7 +75,8 @@ public class NotesAdapter extends ListAdapter<NotesAdapter.NotesRow, NotesAdapte
                 @Override
                 public boolean areItemsTheSame(@NonNull NotesRow oldItem,
                                                @NonNull NotesRow newItem) {
-                    return oldItem.equals(newItem);
+                    return oldItem.type == newItem.type
+                            && oldItem.text.equals(newItem.text);
                 }
 
                 @Override
@@ -100,6 +116,7 @@ public class NotesAdapter extends ListAdapter<NotesAdapter.NotesRow, NotesAdapte
             binding.textHeading.setVisibility(View.GONE);
             binding.textBullet.setVisibility(View.GONE);
             binding.chipKeyTerm.setVisibility(View.GONE);
+            binding.chipGroupKeyTerms.setVisibility(View.GONE);
             switch (row.type) {
                 case HEADING:
                     binding.textHeading.setVisibility(View.VISIBLE);
@@ -113,12 +130,33 @@ public class NotesAdapter extends ListAdapter<NotesAdapter.NotesRow, NotesAdapte
                                     "• " + stripLeadingBullet(row.text)));
                     break;
                 case KEY_TERM:
-                    binding.chipKeyTerm.setVisibility(View.VISIBLE);
-                    binding.chipKeyTerm.setText(row.text);
+                    bindChipGroup(row.chips.isEmpty()
+                            ? Collections.singletonList(row.text)
+                            : row.chips);
                     break;
                 default:
                     break;
             }
+        }
+
+        private void bindChipGroup(@NonNull List<String> terms) {
+            binding.chipGroupKeyTerms.removeAllViews();
+            Context context = binding.getRoot().getContext();
+            for (String term : terms) {
+                if (term == null || term.trim().isEmpty()) {
+                    continue;
+                }
+                Chip chip = new Chip(context);
+                chip.setText(term.trim());
+                chip.setClickable(false);
+                chip.setFocusable(false);
+                chip.setCheckable(false);
+                // Default 48dp touch target makes each chip look like a full row.
+                chip.setEnsureMinTouchTargetSize(false);
+                binding.chipGroupKeyTerms.addView(chip);
+            }
+            binding.chipGroupKeyTerms.setVisibility(
+                    binding.chipGroupKeyTerms.getChildCount() > 0 ? View.VISIBLE : View.GONE);
         }
 
         @NonNull
@@ -160,13 +198,15 @@ public class NotesAdapter extends ListAdapter<NotesAdapter.NotesRow, NotesAdapte
                 }
             }
         }
-        if (!notes.getKeyTerms().isEmpty()) {
-            rows.add(new NotesRow(RowType.HEADING, keyTermsLabel));
-            for (String term : notes.getKeyTerms()) {
-                if (term != null && !term.trim().isEmpty()) {
-                    rows.add(new NotesRow(RowType.KEY_TERM, term.trim()));
-                }
+        List<String> terms = new ArrayList<>();
+        for (String term : notes.getKeyTerms()) {
+            if (term != null && !term.trim().isEmpty()) {
+                terms.add(term.trim());
             }
+        }
+        if (!terms.isEmpty()) {
+            rows.add(new NotesRow(RowType.HEADING, keyTermsLabel));
+            rows.add(new NotesRow(RowType.KEY_TERM, "key_terms", terms));
         }
         if (!notes.getActionItems().isEmpty()) {
             rows.add(new NotesRow(RowType.HEADING, actionItemsLabel));

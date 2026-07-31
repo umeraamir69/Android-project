@@ -10,11 +10,15 @@ import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.SetOptions;
 import com.lecturelens.core.AppExecutors;
 import com.lecturelens.core.Logger;
+import com.lecturelens.data.local.dao.ChatDao;
 import com.lecturelens.data.local.dao.CourseDao;
+import com.lecturelens.data.local.dao.HandoutDao;
 import com.lecturelens.data.local.dao.LectureDao;
 import com.lecturelens.data.local.dao.NotesDao;
 import com.lecturelens.data.local.dao.TranscriptDao;
+import com.lecturelens.data.local.entity.ChatMessageEntity;
 import com.lecturelens.data.local.entity.CourseEntity;
+import com.lecturelens.data.local.entity.HandoutEntity;
 import com.lecturelens.data.local.entity.LectureEntity;
 import com.lecturelens.data.local.entity.NotesEntity;
 import com.lecturelens.data.local.entity.TranscriptEntity;
@@ -22,6 +26,7 @@ import com.lecturelens.domain.model.AuthUser;
 import com.lecturelens.domain.repository.AuthRepository;
 import com.lecturelens.domain.repository.LibrarySyncRepository;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -29,6 +34,10 @@ import java.util.Map;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+/**
+ * Syncs courses, lectures, notes, transcript text, chat, and handout metadata.
+ * Audio binaries stay on-device (path recorded for reference only).
+ */
 @Singleton
 public class FirestoreLibrarySyncRepository implements LibrarySyncRepository {
 
@@ -40,6 +49,8 @@ public class FirestoreLibrarySyncRepository implements LibrarySyncRepository {
     private final LectureDao lectureDao;
     private final NotesDao notesDao;
     private final TranscriptDao transcriptDao;
+    private final ChatDao chatDao;
+    private final HandoutDao handoutDao;
     private final AppExecutors executors;
     private final Logger logger;
 
@@ -50,6 +61,8 @@ public class FirestoreLibrarySyncRepository implements LibrarySyncRepository {
                                           @NonNull LectureDao lectureDao,
                                           @NonNull NotesDao notesDao,
                                           @NonNull TranscriptDao transcriptDao,
+                                          @NonNull ChatDao chatDao,
+                                          @NonNull HandoutDao handoutDao,
                                           @NonNull AppExecutors executors,
                                           @NonNull Logger logger) {
         this.firestore = firestore;
@@ -58,6 +71,8 @@ public class FirestoreLibrarySyncRepository implements LibrarySyncRepository {
         this.lectureDao = lectureDao;
         this.notesDao = notesDao;
         this.transcriptDao = transcriptDao;
+        this.chatDao = chatDao;
+        this.handoutDao = handoutDao;
         this.executors = executors;
         this.logger = logger;
     }
@@ -170,6 +185,7 @@ public class FirestoreLibrarySyncRepository implements LibrarySyncRepository {
         doc.put("date", lecture.date);
         doc.put("durationMs", lecture.durationMs);
         doc.put("status", lecture.status);
+        doc.put("audioPath", lecture.audioPath != null ? lecture.audioPath : "");
         NotesEntity notes = notesDao.getNotesSync(lecture.id);
         if (notes != null) {
             doc.put("summary", notes.summary);
@@ -181,9 +197,46 @@ public class FirestoreLibrarySyncRepository implements LibrarySyncRepository {
             doc.put("transcriptText", transcript.fullText);
             doc.put("language", transcript.language);
         }
+        doc.put("chat", chatToMaps(chatDao.getByLectureSync(lecture.id)));
+        doc.put("handouts", handoutsToMaps(handoutDao.getByLectureSync(lecture.id)));
         firestore.collection("users").document(uid)
                 .collection("lectures").document(String.valueOf(lecture.id))
                 .set(doc, SetOptions.merge());
+    }
+
+    @NonNull
+    private static List<Map<String, Object>> chatToMaps(@Nullable List<ChatMessageEntity> rows) {
+        List<Map<String, Object>> out = new ArrayList<>();
+        if (rows == null) {
+            return out;
+        }
+        for (ChatMessageEntity e : rows) {
+            Map<String, Object> m = new HashMap<>();
+            m.put("role", e.role);
+            m.put("text", e.text);
+            m.put("citationsJson", e.citationsJson);
+            m.put("createdAt", e.createdAt);
+            out.add(m);
+        }
+        return out;
+    }
+
+    @NonNull
+    private static List<Map<String, Object>> handoutsToMaps(@Nullable List<HandoutEntity> rows) {
+        List<Map<String, Object>> out = new ArrayList<>();
+        if (rows == null) {
+            return out;
+        }
+        for (HandoutEntity e : rows) {
+            Map<String, Object> m = new HashMap<>();
+            m.put("mimeType", e.mimeType);
+            m.put("displayName", e.displayName);
+            m.put("extractedText", e.extractedText);
+            m.put("remoteUrl", e.remoteUrl != null ? e.remoteUrl : "");
+            m.put("createdAt", e.createdAt);
+            out.add(m);
+        }
+        return out;
     }
 
     private void importLectureIfMissing(@NonNull QueryDocumentSnapshot doc) {
@@ -207,7 +260,7 @@ public class FirestoreLibrarySyncRepository implements LibrarySyncRepository {
         lecture.durationMs = duration != null ? duration : 0L;
         String status = doc.getString("status");
         lecture.status = status != null ? status : "SHARED";
-        lecture.audioPath = null;
+        lecture.audioPath = null; // Binary audio is device-local; not restored from path string.
         long id = lectureDao.insert(lecture);
 
         String summary = doc.getString("summary");
@@ -230,6 +283,64 @@ public class FirestoreLibrarySyncRepository implements LibrarySyncRepository {
             t.language = lang != null ? lang : "en-US";
             t.modelUsed = "cloud_sync";
             transcriptDao.insertTranscript(t);
+        }
+        importChat(id, doc.get("chat"));
+        importHandouts(id, doc.get("handouts"));
+    }
+
+    private void importChat(long lectureId, @Nullable Object raw) {
+        if (!(raw instanceof List)) {
+            return;
+        }
+        for (Object item : (List<?>) raw) {
+            if (!(item instanceof Map)) {
+                continue;
+            }
+            @SuppressWarnings("unchecked")
+            Map<String, Object> map = (Map<String, Object>) item;
+            ChatMessageEntity e = new ChatMessageEntity();
+            e.lectureId = lectureId;
+            Object role = map.get("role");
+            e.role = role != null ? role.toString() : "user";
+            Object text = map.get("text");
+            e.text = text != null ? text.toString() : "";
+            Object cites = map.get("citationsJson");
+            e.citationsJson = cites != null ? cites.toString() : "[]";
+            Object created = map.get("createdAt");
+            e.createdAt = created instanceof Number
+                    ? ((Number) created).longValue()
+                    : System.currentTimeMillis();
+            chatDao.insert(e);
+        }
+    }
+
+    private void importHandouts(long lectureId, @Nullable Object raw) {
+        if (!(raw instanceof List)) {
+            return;
+        }
+        for (Object item : (List<?>) raw) {
+            if (!(item instanceof Map)) {
+                continue;
+            }
+            @SuppressWarnings("unchecked")
+            Map<String, Object> map = (Map<String, Object>) item;
+            HandoutEntity e = new HandoutEntity();
+            e.lectureId = lectureId;
+            e.imagePath = "";
+            Object mime = map.get("mimeType");
+            e.mimeType = mime != null ? mime.toString() : "application/octet-stream";
+            Object name = map.get("displayName");
+            e.displayName = name != null ? name.toString() : "Handout";
+            Object text = map.get("extractedText");
+            e.extractedText = text != null ? text.toString() : "";
+            Object url = map.get("remoteUrl");
+            String remote = url != null ? url.toString() : "";
+            e.remoteUrl = remote.isEmpty() ? null : remote;
+            Object created = map.get("createdAt");
+            e.createdAt = created instanceof Number
+                    ? ((Number) created).longValue()
+                    : System.currentTimeMillis();
+            handoutDao.insert(e);
         }
     }
 

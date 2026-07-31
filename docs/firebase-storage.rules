@@ -1,0 +1,42 @@
+rules_version = '2';
+
+// Deploy in Firebase Console → Storage → Rules.
+// LectureLens layout:
+//   users/{uid}/handouts/...     — private handouts
+//   shared/{code}/handouts/...   — share-code downloads (tokenized URLs)
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    // Private user files
+    match /users/{uid}/{allPaths=**} {
+      allow read, write: if isOwner(uid)
+          && request.resource.size < 40 * 1024 * 1024
+          && (request.resource == null
+              || request.resource.contentType.matches('image/.*')
+              || request.resource.contentType.matches('application/pdf')
+              || request.resource.contentType.matches('application/msword')
+              || request.resource.contentType.matches('application/vnd.openxmlformats.*')
+              || request.resource.contentType.matches('text/.*')
+              || request.resource.contentType.matches('audio/.*'));
+      allow read, write: if isOwner(uid) && request.resource == null;
+    }
+
+    // Shared handouts for import-by-code.
+    // Reads often use download URLs with tokens; keep write authenticated.
+    match /shared/{code}/{allPaths=**} {
+      allow read: if true;
+      allow write: if signedIn()
+          && code.size() == 6
+          && request.resource.size < 40 * 1024 * 1024;
+    }
+  }
+}

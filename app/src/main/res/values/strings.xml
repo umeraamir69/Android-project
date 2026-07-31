@@ -3,6 +3,7 @@
 
     <!-- ===== Navigation destination labels (Day 0) ===== -->
     <string name="title_login">Sign in</string>
+    <string name="title_create_account">Create account</string>
     <string name="title_home">Home</string>
     <string name="title_library">Library</string>
     <string name="title_upload">Record / Import</string>
@@ -116,13 +117,15 @@
     <string name="login_subtitle">Turn lecture audio into searchable notes</string>
     <string name="login_email_hint">Email</string>
     <string name="login_password_hint">Password</string>
-    <string name="login_google">Continue with Google</string>
-    <string name="login_or">or use email</string>
     <string name="login_sign_in">Sign in</string>
     <string name="login_create_account">Create account</string>
-    <string name="login_magic_link">Email me a sign-in link</string>
-    <string name="login_google_failed">Google sign-in failed</string>
-    <string name="login_google_missing_client">Add FIREBASE_WEB_CLIENT_ID to local.properties (Firebase → Google Sign-In web client ID), add your debug SHA-1, and re-download google-services.json.</string>
+    <string name="create_account_headline">Create your account</string>
+    <string name="create_account_subtitle">Add your student details so shared notes show who you are.</string>
+    <string name="create_account_section_account">Account</string>
+    <string name="create_account_section_profile">Student profile</string>
+    <string name="create_account_password_helper">At least 6 characters</string>
+    <string name="create_account_submit">Create account</string>
+    <string name="create_account_have_account">Already have an account? Sign in</string>
     <string name="login_api_key_hint">Gemini API key (used for notes)</string>
     <string name="login_api_key_helper">Saved key is used for Gemini notes. STT still prefers STT_API_KEY in local.properties. Keep consent checked for cloud processing.</string>
     <string name="login_consent_label">Process my lecture audio with Google cloud services</string>
@@ -145,7 +148,7 @@
     <string name="dialog_professor_hint">Professor name</string>
     <string name="course_professor_label">Prof. %1$s</string>
     <string name="settings_processing_mode_hint">Processing mode</string>
-    <string name="settings_processing_mode_note">Cloud uses Google STT + Gemini. On-device uses the system speech recognizer and a local extractive summary. Auto picks on-device when offline.</string>
+    <string name="settings_processing_mode_note">Cloud uses Google STT + Gemini. On-device uses the system speech recognizer and a scored extractive summary / Ask AI (not a local LLM). Auto picks on-device when offline.</string>
     <string name="action_save">Save</string>
     <string name="settings_key_saved">API key saved — queued jobs cancelled</string>
     <string name="settings_consent_label">Cloud processing consent</string>
@@ -202,6 +205,16 @@
     <string name="dialog_delete_category_message">Delete “%1$s”? Lectures move to Uncategorized.</string>
     <string name="action_delete">Delete</string>
     <string name="action_cancel">Cancel</string>
+    <string name="action_ok">OK</string>
+    <string name="action_help">Help</string>
+    <string name="help_title">Help — %1$s</string>
+    <string name="help_close">Close</string>
+    <string name="help_authors">Muhammad Umer Amir, Zeeshan Mahmood, Daniel Monday-Ogidi, Adeniyi Ridwan Adetunji, Aaron Gullraiz Cecil</string>
+    <string name="help_body">Authors: %1$s\n\nApp version: %2$s\n\nHow to use %3$s:\n• Tap a list item to open details.\n• Use toolbar icons for Search, Add, Settings, and Help.\n• Add or delete items from menus or long-press where available.\n• Progress bars appear while the app loads or talks to the cloud.\n• Switch language in Settings (English / Français).</string>
+    <string name="toast_section_ready">%1$s ready</string>
+    <string name="settings_ui_language">App language</string>
+    <string name="settings_ui_language_note">English or French interface language</string>
+    <string name="demo_login_hint">Demo: create an account on Create account, or use your Firebase email/password.</string>
     <string name="cd_toggle_course">Expand or collapse course</string>
     <string name="cd_category_menu">Category options</string>
     <string name="cd_lecture_menu">Lecture options</string>

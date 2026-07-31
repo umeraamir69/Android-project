@@ -7,6 +7,7 @@ import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
 import com.lecturelens.core.AppExecutors;
+import com.lecturelens.core.BgAsyncTask;
 import com.lecturelens.data.prefs.UserSettingsStore;
 import com.lecturelens.domain.model.AuthUser;
 import com.lecturelens.domain.model.UserProfile;
@@ -27,6 +28,7 @@ public class SettingsViewModel extends ViewModel {
         public final boolean consent;
         @NonNull public final String themeMode;
         @NonNull public final String language;
+        @NonNull public final String appLocale;
         @NonNull public final String processingMode;
         @NonNull public final UserProfile profile;
 
@@ -35,6 +37,7 @@ public class SettingsViewModel extends ViewModel {
               boolean consent,
               @NonNull String themeMode,
               @NonNull String language,
+              @NonNull String appLocale,
               @NonNull String processingMode,
               @NonNull UserProfile profile) {
             this.email = email;
@@ -42,6 +45,7 @@ public class SettingsViewModel extends ViewModel {
             this.consent = consent;
             this.themeMode = themeMode;
             this.language = language;
+            this.appLocale = appLocale;
             this.processingMode = processingMode;
             this.profile = profile;
         }
@@ -74,7 +78,7 @@ public class SettingsViewModel extends ViewModel {
     }
 
     private void reload() {
-        executors.diskIO().execute(() -> {
+        BgAsyncTask.run(() -> {
             AuthUser user = authRepository.getCurrentUser();
             String email = user != null && user.email != null && !user.email.isEmpty()
                     ? user.email
@@ -96,6 +100,7 @@ public class SettingsViewModel extends ViewModel {
                     credentials.hasCloudConsent(),
                     userSettings.getThemeMode(),
                     userSettings.getSttLanguage(),
+                    userSettings.getAppLocale(),
                     userSettings.getProcessingMode(),
                     profile));
         });
@@ -142,7 +147,7 @@ public class SettingsViewModel extends ViewModel {
                             @Nullable String studentId) {
         UserProfile profile = new UserProfile(
                 username, fullName, dob, university, program, studentId);
-        executors.diskIO().execute(() -> {
+        BgAsyncTask.run(() -> {
             userSettings.setProfile(profile);
             profileSaved.postValue(true);
         });
@@ -177,6 +182,10 @@ public class SettingsViewModel extends ViewModel {
 
     public void setProcessingMode(@NonNull String mode) {
         userSettings.setProcessingMode(mode);
+    }
+
+    public void setAppLocale(@NonNull String languageTag) {
+        userSettings.setAppLocale(languageTag);
     }
 
     public void signOut() {

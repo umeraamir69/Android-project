@@ -27,15 +27,6 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                <data
-                    android:host="lecturelense.firebaseapp.com"
-                    android:pathPrefix="/finishSignIn"
-                    android:scheme="https" />
-            </intent-filter>
         </activity>
         <!-- Track 3: foreground recording service keeps the mic alive off-screen -->
         <service
@@ -47,6 +38,31 @@
             android:name=".ThemeShowcaseActivity"
             android:exported="false"
             android:label="@string/showcase_title"
+            android:parentActivityName=".MainActivity" />
+        <activity
+            android:name=".ui.section.LibraryActivity"
+            android:exported="false"
+            android:label="@string/title_library"
+            android:parentActivityName=".MainActivity" />
+        <activity
+            android:name=".ui.section.SearchActivity"
+            android:exported="false"
+            android:label="@string/title_search"
+            android:parentActivityName=".MainActivity" />
+        <activity
+            android:name=".ui.section.UploadActivity"
+            android:exported="false"
+            android:label="@string/title_upload"
+            android:parentActivityName=".MainActivity" />
+        <activity
+            android:name=".ui.section.SettingsActivity"
+            android:exported="false"
+            android:label="@string/title_settings"
+            android:parentActivityName=".MainActivity" />
+        <activity
+            android:name=".ui.section.LectureActivity"
+            android:exported="false"
+            android:label="@string/title_lecture"
             android:parentActivityName=".MainActivity" />
         <!-- Track 5: share exported Markdown notes -->
         <provider

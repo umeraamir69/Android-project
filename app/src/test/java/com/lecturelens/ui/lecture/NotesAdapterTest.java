@@ -25,23 +25,24 @@ public class NotesAdapterTest {
         List<NotesAdapter.NotesRow> rows = NotesAdapter.fromNotes(
                 notes, "Summary", "Key terms", "Action items");
 
-        assertTrue(rows.size() >= 6);
+        assertTrue(rows.size() >= 5);
         assertEquals(NotesAdapter.RowType.HEADING, rows.get(0).type);
         assertEquals("Summary", rows.get(0).text);
 
-        boolean hasChip = false;
+        boolean hasChipGroup = false;
         boolean hasAction = false;
         for (NotesAdapter.NotesRow row : rows) {
             if (row.type == NotesAdapter.RowType.KEY_TERM
-                    && "lifecycle".equals(row.text)) {
-                hasChip = true;
+                    && row.chips.contains("lifecycle")
+                    && row.chips.contains("Room")) {
+                hasChipGroup = true;
             }
             if (row.type == NotesAdapter.RowType.BULLET
                     && "Study more".equals(row.text)) {
                 hasAction = true;
             }
         }
-        assertTrue(hasChip);
+        assertTrue(hasChipGroup);
         assertTrue(hasAction);
     }
 }

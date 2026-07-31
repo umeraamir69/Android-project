@@ -8,15 +8,12 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.FrameLayout;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
-import androidx.navigation.NavController;
-import androidx.navigation.NavOptions;
-import androidx.navigation.fragment.NavHostFragment;
-import androidx.recyclerview.widget.LinearLayoutManager;
 
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.snackbar.Snackbar;
@@ -24,21 +21,22 @@ import com.lecturelens.R;
 import com.lecturelens.core.UiState;
 import com.lecturelens.databinding.FragmentHomeBinding;
 import com.lecturelens.databinding.ItemHomeShortcutBinding;
+import com.lecturelens.ui.util.AppNavigator;
+import com.lecturelens.ui.util.HelpDialogs;
+import com.lecturelens.ui.util.ListViewHeight;
+import com.lecturelens.ui.util.SectionFeedback;
+import com.lecturelens.ui.util.UiAnimations;
 
 import dagger.hilt.android.AndroidEntryPoint;
 
-/**
- * Post-login landing: stats, shortcuts, and recent lectures.
- */
 @AndroidEntryPoint
 public class HomeFragment extends Fragment {
 
-    /** Matches FirestoreCloudShareRepository share-code alphabet (6 chars). */
     private static final String SHARE_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
     @Nullable private FragmentHomeBinding binding;
     private HomeViewModel viewModel;
-    private RecentLecturesAdapter recentAdapter;
+    private RecentLecturesListAdapter recentAdapter;
 
     @Nullable
     @Override
@@ -54,22 +52,32 @@ public class HomeFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
         viewModel = new ViewModelProvider(this).get(HomeViewModel.class);
 
+        UiAnimations.animateScreenEnter(binding.getRoot());
         bindShortcuts();
-        recentAdapter = new RecentLecturesAdapter(this::openLecture);
-        binding.recyclerRecent.setLayoutManager(new LinearLayoutManager(requireContext()));
-        binding.recyclerRecent.setAdapter(recentAdapter);
-        binding.recyclerRecent.setNestedScrollingEnabled(false);
+        recentAdapter = new RecentLecturesListAdapter(id ->
+                AppNavigator.openLecture(this, id, -1L));
+        binding.listRecent.setAdapter(recentAdapter);
 
+        binding.buttonHelp.setOnClickListener(v ->
+                HelpDialogs.show(this, getString(R.string.title_home)));
         binding.buttonSettings.setOnClickListener(v ->
-                nav().navigate(R.id.action_home_to_settings));
-        binding.buttonSeeAll.setOnClickListener(v -> goToLibrary());
+                AppNavigator.openSettingsActivity(this));
+        binding.buttonSeeAll.setOnClickListener(v ->
+                AppNavigator.openLibraryActivity(this));
         binding.buttonEmptyRecord.setOnClickListener(v ->
-                nav().navigate(R.id.action_home_to_upload));
+                AppNavigator.openUploadActivity(this));
+        UiAnimations.bindPressScale(binding.buttonSeeAll);
+        UiAnimations.bindPressScale(binding.buttonEmptyRecord);
+        UiAnimations.staggerChildren(binding.shortcutGrid);
+
+        SectionFeedback.toast(this, getString(R.string.toast_section_ready,
+                getString(R.string.title_home)));
 
         viewModel.getUiState().observe(getViewLifecycleOwner(), this::render);
         viewModel.getImportError().observe(getViewLifecycleOwner(), error -> {
             if (error != null && binding != null) {
                 Snackbar.make(binding.getRoot(), error, Snackbar.LENGTH_LONG).show();
+                Toast.makeText(requireContext(), error, Toast.LENGTH_SHORT).show();
                 viewModel.consumeImportError();
             }
         });
@@ -80,7 +88,8 @@ public class HomeFragment extends Fragment {
             Snackbar.make(binding.getRoot(),
                             getString(R.string.share_import_saved, event.title),
                             Snackbar.LENGTH_LONG)
-                    .setAction(R.string.action_open, v -> openLecture(event.lectureId))
+                    .setAction(R.string.action_open, v ->
+                            AppNavigator.openLecture(this, event.lectureId, -1L))
                     .show();
             viewModel.consumeImportEvent();
         });
@@ -88,17 +97,19 @@ public class HomeFragment extends Fragment {
             if (binding == null) {
                 return;
             }
-            binding.shortcutShared.getRoot().setEnabled(!Boolean.TRUE.equals(loading));
+            boolean busy = Boolean.TRUE.equals(loading);
+            binding.progressHome.setVisibility(busy ? View.VISIBLE : View.GONE);
+            binding.shortcutShared.getRoot().setEnabled(!busy);
         });
     }
 
     private void bindShortcuts() {
         setupShortcut(binding.shortcutRecord, R.drawable.ic_mic_24, R.string.action_record,
-                v -> nav().navigate(R.id.action_home_to_upload));
+                v -> AppNavigator.openUploadActivity(this));
         setupShortcut(binding.shortcutLibrary, R.drawable.ic_library_24, R.string.title_library,
-                v -> goToLibrary());
+                v -> AppNavigator.openLibraryActivity(this));
         setupShortcut(binding.shortcutSearch, R.drawable.ic_search_24, R.string.action_search,
-                v -> goToSearch());
+                v -> AppNavigator.openSearchActivity(this));
         setupShortcut(binding.shortcutShared, R.drawable.ic_folder_shared_24,
                 R.string.home_open_shared,
                 v -> showOpenSharedDialog());
@@ -111,6 +122,7 @@ public class HomeFragment extends Fragment {
         shortcut.imageShortcut.setImageResource(iconRes);
         shortcut.textShortcut.setText(titleRes);
         shortcut.getRoot().setOnClickListener(click);
+        UiAnimations.bindPressScale(shortcut.getRoot());
     }
 
     private void showOpenSharedDialog() {
@@ -121,7 +133,7 @@ public class HomeFragment extends Fragment {
         input.setHint(R.string.settings_share_code_hint);
         input.setFilters(new InputFilter[]{
                 new InputFilter.AllCaps(),
-                new InputFilter.LengthFilter(6),
+                new InputFilter.LengthFilter(com.lecturelens.domain.util.ShareCodes.LENGTH),
                 (source, start, end, dest, dstart, dend) -> {
                     StringBuilder kept = new StringBuilder();
                     for (int i = start; i < end; i++) {
@@ -130,11 +142,10 @@ public class HomeFragment extends Fragment {
                             kept.append(c);
                         }
                     }
-                    // Reject / rewrite disallowed characters.
                     String filtered = kept.toString();
                     String original = source.subSequence(start, end).toString();
                     if (filtered.equalsIgnoreCase(original)) {
-                        return null; // keep as-is (AllCaps handles case)
+                        return null;
                     }
                     return filtered;
                 }
@@ -159,7 +170,15 @@ public class HomeFragment extends Fragment {
     }
 
     private void render(@NonNull UiState<HomeDashboard> state) {
-        if (binding == null || !(state instanceof UiState.Success)) {
+        if (binding == null) {
+            return;
+        }
+        if (state instanceof UiState.Loading) {
+            binding.progressHome.setVisibility(View.VISIBLE);
+            return;
+        }
+        binding.progressHome.setVisibility(View.GONE);
+        if (!(state instanceof UiState.Success)) {
             return;
         }
         HomeDashboard dash = ((UiState.Success<HomeDashboard>) state).data;
@@ -187,37 +206,15 @@ public class HomeFragment extends Fragment {
 
         boolean empty = dash.recentLectures.isEmpty();
         binding.emptyRecent.setVisibility(empty ? View.VISIBLE : View.GONE);
-        binding.recyclerRecent.setVisibility(empty ? View.GONE : View.VISIBLE);
+        binding.listRecent.setVisibility(empty ? View.GONE : View.VISIBLE);
         binding.buttonSeeAll.setVisibility(empty ? View.GONE : View.VISIBLE);
-        recentAdapter.submitList(dash.recentLectures);
-    }
-
-    private void openLecture(long lectureId) {
-        Bundle args = new Bundle();
-        args.putLong("lectureId", lectureId);
-        nav().navigate(R.id.action_home_to_lecture, args);
-    }
-
-    private void goToLibrary() {
-        NavOptions options = new NavOptions.Builder()
-                .setLaunchSingleTop(true)
-                .setRestoreState(true)
-                .setPopUpTo(R.id.home, false, true)
-                .build();
-        nav().navigate(R.id.library, null, options);
-    }
-
-    private void goToSearch() {
-        NavOptions options = new NavOptions.Builder()
-                .setLaunchSingleTop(true)
-                .setRestoreState(true)
-                .setPopUpTo(R.id.home, false, true)
-                .build();
-        nav().navigate(R.id.search, null, options);
-    }
-
-    private NavController nav() {
-        return NavHostFragment.findNavController(this);
+        recentAdapter.submit(dash.recentLectures);
+        if (!empty) {
+            binding.listRecent.post(() -> {
+                ListViewHeight.expand(binding.listRecent);
+                UiAnimations.playListLayoutAnimation(binding.listRecent);
+            });
+        }
     }
 
     @Override

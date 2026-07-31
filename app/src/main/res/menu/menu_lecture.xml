@@ -27,4 +27,10 @@
         android:icon="@drawable/ic_share_24"
         android:title="@string/action_share_export"
         app:showAsAction="always" />
+
+    <item
+        android:id="@+id/menu_help"
+        android:icon="@drawable/ic_help_24"
+        android:title="@string/action_help"
+        app:showAsAction="ifRoom" />
 </menu>

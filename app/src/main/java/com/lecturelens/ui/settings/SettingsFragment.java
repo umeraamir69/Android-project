@@ -17,7 +17,10 @@ import androidx.navigation.fragment.NavHostFragment;
 import com.google.android.material.snackbar.Snackbar;
 import com.lecturelens.R;
 import com.lecturelens.ThemeShowcaseActivity;
+import com.lecturelens.core.AppLocale;
 import com.lecturelens.databinding.FragmentSettingsBinding;
+import com.lecturelens.ui.util.HelpDialogs;
+import com.lecturelens.ui.util.SectionFeedback;
 
 import dagger.hilt.android.AndroidEntryPoint;
 
@@ -41,13 +44,28 @@ public class SettingsFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
         SettingsViewModel viewModel = new ViewModelProvider(this).get(SettingsViewModel.class);
 
-        binding.toolbar.setNavigationOnClickListener(v ->
-                NavHostFragment.findNavController(this).navigateUp());
+        binding.toolbar.setNavigationOnClickListener(v -> {
+            try {
+                NavHostFragment.findNavController(this).navigateUp();
+            } catch (IllegalStateException e) {
+                requireActivity().finish();
+            }
+        });
+        binding.toolbar.inflateMenu(R.menu.menu_help);
+        binding.toolbar.setOnMenuItemClickListener(item -> {
+            if (item.getItemId() == R.id.menu_help) {
+                HelpDialogs.show(this, getString(R.string.title_settings));
+                return true;
+            }
+            return false;
+        });
 
         String[] themeLabels = getResources().getStringArray(R.array.theme_mode_labels);
         String[] themeValues = getResources().getStringArray(R.array.theme_mode_values);
         String[] langLabels = getResources().getStringArray(R.array.stt_language_labels);
         String[] langValues = getResources().getStringArray(R.array.stt_language_values);
+        String[] uiLangLabels = getResources().getStringArray(R.array.ui_language_labels);
+        String[] uiLangValues = getResources().getStringArray(R.array.ui_language_values);
         String[] modeLabels = getResources().getStringArray(R.array.processing_mode_labels);
         String[] modeValues = getResources().getStringArray(R.array.processing_mode_values);
 
@@ -55,8 +73,12 @@ public class SettingsFragment extends Fragment {
                 requireContext(), android.R.layout.simple_list_item_1, themeLabels));
         binding.inputLanguage.setAdapter(new ArrayAdapter<>(
                 requireContext(), android.R.layout.simple_list_item_1, langLabels));
+        binding.inputUiLanguage.setAdapter(new ArrayAdapter<>(
+                requireContext(), android.R.layout.simple_list_item_1, uiLangLabels));
         binding.inputProcessing.setAdapter(new ArrayAdapter<>(
                 requireContext(), android.R.layout.simple_list_item_1, modeLabels));
+        SectionFeedback.toast(this, getString(R.string.toast_section_ready,
+                getString(R.string.title_settings)));
 
         viewModel.getState().observe(getViewLifecycleOwner(), state -> {
             if (state == null || stateApplied || binding == null) {
@@ -81,6 +103,16 @@ public class SettingsFragment extends Fragment {
             binding.inputTheme.setOnItemClickListener((parent, v, position, id) -> {
                 if (position >= 0 && position < themeValues.length) {
                     viewModel.setThemeMode(themeValues[position]);
+                }
+            });
+
+            int uiIndex = indexOf(uiLangValues, state.appLocale, 0);
+            binding.inputUiLanguage.setText(uiLangLabels[uiIndex], false);
+            binding.inputUiLanguage.setOnItemClickListener((parent, v, position, id) -> {
+                if (position >= 0 && position < uiLangValues.length) {
+                    viewModel.setAppLocale(uiLangValues[position]);
+                    SectionFeedback.snackbar(this, R.string.settings_profile_saved);
+                    AppLocale.recreate(requireActivity());
                 }
             });
 
@@ -117,6 +149,9 @@ public class SettingsFragment extends Fragment {
             if (Boolean.TRUE.equals(saved) && binding != null) {
                 Snackbar.make(binding.getRoot(), R.string.settings_profile_saved,
                         Snackbar.LENGTH_SHORT).show();
+                SectionFeedback.toast(this, R.string.settings_profile_saved);
+                SectionFeedback.infoDialog(this, R.string.title_settings,
+                        getString(R.string.settings_profile_saved));
                 viewModel.ackProfileSaved();
             }
         });

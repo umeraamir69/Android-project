@@ -172,7 +172,7 @@ public class LibraryViewModel extends BaseViewModel<List<CourseSection>> {
             return;
         }
         String prof = professor != null ? professor.trim() : "";
-        executors.diskIO().execute(() -> {
+        com.lecturelens.core.BgAsyncTask.run(() -> {
             int colorIndex = latestCourses == null ? 0 : latestCourses.size() % COURSE_COLORS.length;
             Course course = new Course(
                     0L, name, COURSE_COLORS[colorIndex], System.currentTimeMillis(), prof);
@@ -208,7 +208,7 @@ public class LibraryViewModel extends BaseViewModel<List<CourseSection>> {
         if (courseId == UNCATEGORIZED_COURSE_ID) {
             return;
         }
-        executors.diskIO().execute(() -> {
+        com.lecturelens.core.BgAsyncTask.run(() -> {
             lectureRepository.clearCourseId(courseId);
             courseRepository.delete(courseId);
         });

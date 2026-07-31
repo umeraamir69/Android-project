@@ -1,16 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:paddingHorizontal="16dp"
-    android:paddingVertical="6dp">
+    android:paddingVertical="4dp">
 
     <TextView
         android:id="@+id/text_heading"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:paddingTop="8dp"
+        android:paddingTop="12dp"
+        android:paddingBottom="4dp"
         android:textAppearance="?attr/textAppearanceTitleSmall"
         android:visibility="gone"
         tools:text="Summary"
@@ -21,20 +23,48 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:paddingStart="8dp"
+        android:paddingVertical="2dp"
         android:textAppearance="?attr/textAppearanceBodyMedium"
         android:visibility="gone"
         tools:text="• Review onCreate vs onStart"
         tools:visibility="gone" />
 
+    <!-- Single chip kept for tools/preview; runtime uses chip_group. -->
     <com.google.android.material.chip.Chip
         android:id="@+id/chip_key_term"
         style="@style/Widget.Material3.Chip.Assist"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:clickable="false"
-        android:focusable="false"
         android:visibility="gone"
-        tools:text="lifecycle"
-        tools:visibility="gone" />
+        tools:ignore="UnusedAttribute" />
+
+    <com.google.android.material.chip.ChipGroup
+        android:id="@+id/chip_group_key_terms"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        app:chipSpacingHorizontal="8dp"
+        app:chipSpacingVertical="6dp"
+        app:singleLine="false"
+        tools:visibility="visible">
+
+        <com.google.android.material.chip.Chip
+            style="@style/Widget.Material3.Chip.Assist"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:clickable="false"
+            android:focusable="false"
+            android:text="Lecture Lens"
+            tools:ignore="HardcodedText" />
+
+        <com.google.android.material.chip.Chip
+            style="@style/Widget.Material3.Chip.Assist"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:clickable="false"
+            android:focusable="false"
+            android:text="Mobile Application"
+            tools:ignore="HardcodedText" />
+    </com.google.android.material.chip.ChipGroup>
 
 </FrameLayout>
