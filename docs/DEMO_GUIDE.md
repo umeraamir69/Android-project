@@ -3,6 +3,8 @@
 Use this document to plan the **demo video** and live presentation.  
 App package: `com.lecturelens` · Version: see Help menu (Settings / any toolbar **?**)
 
+Also see: root [`README.md`](../README.md) · [`SUBMISSION.md`](SUBMISSION.md)
+
 ---
 
 ## Suggested demo account (fill in before submit)
