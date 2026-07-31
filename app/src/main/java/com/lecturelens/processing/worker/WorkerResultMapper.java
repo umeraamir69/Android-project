@@ -34,12 +34,33 @@ public final class WorkerResultMapper {
     public static <T> androidx.work.ListenableWorker.Result fromDomainResult(
             long lectureId,
             @NonNull Result<T> result) {
+        return fromDomainResult(lectureId, result, 0, null);
+    }
+
+    /**
+     * @param runAttemptCount WorkManager attempt count; when {@code >= 1} and the domain
+     *                        result is retryable, returns a permanent failure instead of retry
+     *                        (avoids RestrictedApi instanceof checks on Result.Retry).
+     * @param exhaustedMessage message used when retries are exhausted; ignored if null
+     */
+    @NonNull
+    public static <T> androidx.work.ListenableWorker.Result fromDomainResult(
+            long lectureId,
+            @NonNull Result<T> result,
+            int runAttemptCount,
+            String exhaustedMessage) {
         if (result instanceof Result.Success) {
             return success(lectureId);
         }
         if (result instanceof Result.Error) {
             String message = ((Result.Error<T>) result).message;
             if (message.startsWith(RemoteRetryMarkers.CODE_RETRY)) {
+                if (runAttemptCount >= 1) {
+                    String failMsg = exhaustedMessage != null
+                            ? exhaustedMessage
+                            : stripRetryPrefix(message);
+                    return failure(failMsg);
+                }
                 return androidx.work.ListenableWorker.Result.retry();
             }
             return failure(stripRetryPrefix(message));
