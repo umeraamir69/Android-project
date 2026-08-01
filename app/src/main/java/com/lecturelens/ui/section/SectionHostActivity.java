@@ -1,5 +1,6 @@
 package com.lecturelens.ui.section;
 
+import android.content.Context;
 import android.os.Bundle;
 import android.view.View;
 
@@ -13,6 +14,8 @@ import androidx.core.view.WindowInsetsCompat;
 import androidx.fragment.app.Fragment;
 
 import com.lecturelens.R;
+import com.lecturelens.core.AppLocale;
+import com.lecturelens.data.prefs.UserSettingsStore;
 import com.lecturelens.ui.util.UiAnimations;
 
 import dagger.hilt.android.AndroidEntryPoint;
@@ -23,6 +26,12 @@ public abstract class SectionHostActivity extends AppCompatActivity {
 
     @NonNull
     protected abstract Fragment createFragment();
+
+    @Override
+    protected void attachBaseContext(Context newBase) {
+        String locale = new UserSettingsStore(newBase).getAppLocale();
+        super.attachBaseContext(AppLocale.wrap(newBase, locale));
+    }
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {

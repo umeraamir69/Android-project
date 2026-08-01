@@ -11,14 +11,13 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
-import androidx.navigation.NavOptions;
 import androidx.navigation.fragment.NavHostFragment;
 
 import com.google.android.material.snackbar.Snackbar;
 import com.lecturelens.R;
 import com.lecturelens.ThemeShowcaseActivity;
-import com.lecturelens.core.AppLocale;
 import com.lecturelens.databinding.FragmentSettingsBinding;
+import com.lecturelens.ui.util.AppNavigator;
 import com.lecturelens.ui.util.HelpDialogs;
 import com.lecturelens.ui.util.SectionFeedback;
 
@@ -110,9 +109,8 @@ public class SettingsFragment extends Fragment {
             binding.inputUiLanguage.setText(uiLangLabels[uiIndex], false);
             binding.inputUiLanguage.setOnItemClickListener((parent, v, position, id) -> {
                 if (position >= 0 && position < uiLangValues.length) {
+                    // AppCompat setApplicationLocales recreates Activities safely.
                     viewModel.setAppLocale(uiLangValues[position]);
-                    SectionFeedback.snackbar(this, R.string.settings_profile_saved);
-                    AppLocale.recreate(requireActivity());
                 }
             });
 
@@ -158,11 +156,7 @@ public class SettingsFragment extends Fragment {
 
         viewModel.getSignedOut().observe(getViewLifecycleOwner(), out -> {
             if (Boolean.TRUE.equals(out)) {
-                NavOptions options = new NavOptions.Builder()
-                        .setPopUpTo(R.id.nav_graph, true)
-                        .build();
-                NavHostFragment.findNavController(this)
-                        .navigate(R.id.login, null, options);
+                AppNavigator.openLoginAfterSignOut(this);
             }
         });
 

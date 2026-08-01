@@ -6,6 +6,8 @@ import android.content.res.Configuration;
 import android.os.LocaleList;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatDelegate;
+import androidx.core.os.LocaleListCompat;
 
 import java.util.Locale;
 
@@ -19,8 +21,19 @@ public final class AppLocale {
     }
 
     @NonNull
+    public static String normalize(@NonNull String languageTag) {
+        return FR.equalsIgnoreCase(languageTag) ? FR : EN;
+    }
+
+    /** Apply saved locale for the whole process (recreates Activities as needed). */
+    public static void apply(@NonNull String languageTag) {
+        String tag = normalize(languageTag);
+        AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(tag));
+    }
+
+    @NonNull
     public static Context wrap(@NonNull Context context, @NonNull String languageTag) {
-        Locale locale = FR.equals(languageTag) ? Locale.FRENCH : Locale.ENGLISH;
+        Locale locale = FR.equals(normalize(languageTag)) ? Locale.FRENCH : Locale.ENGLISH;
         Locale.setDefault(locale);
         Configuration config = new Configuration(context.getResources().getConfiguration());
         config.setLocales(new LocaleList(locale));

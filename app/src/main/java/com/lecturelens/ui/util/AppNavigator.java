@@ -1,5 +1,6 @@
 package com.lecturelens.ui.util;
 
+import android.content.Intent;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
@@ -8,6 +9,7 @@ import androidx.navigation.NavController;
 import androidx.navigation.NavOptions;
 import androidx.navigation.fragment.NavHostFragment;
 
+import com.lecturelens.MainActivity;
 import com.lecturelens.R;
 import com.lecturelens.ui.section.LectureActivity;
 import com.lecturelens.ui.section.LibraryActivity;
@@ -19,6 +21,22 @@ import com.lecturelens.ui.section.UploadActivity;
 public final class AppNavigator {
 
     private AppNavigator() {
+    }
+
+    /** After sign-out: go to login whether hosted in MainActivity or a section Activity. */
+    public static void openLoginAfterSignOut(@NonNull Fragment fragment) {
+        try {
+            NavOptions options = new NavOptions.Builder()
+                    .setPopUpTo(R.id.nav_graph, true)
+                    .build();
+            NavHostFragment.findNavController(fragment)
+                    .navigate(R.id.login, null, options);
+        } catch (IllegalStateException e) {
+            Intent intent = new Intent(fragment.requireContext(), MainActivity.class);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            fragment.startActivity(intent);
+            fragment.requireActivity().finish();
+        }
     }
 
     public static void openLecture(@NonNull Fragment fragment, long lectureId, long seekMs) {

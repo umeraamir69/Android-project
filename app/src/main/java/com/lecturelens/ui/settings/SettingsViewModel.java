@@ -7,6 +7,7 @@ import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
 import com.lecturelens.core.AppExecutors;
+import com.lecturelens.core.AppLocale;
 import com.lecturelens.core.BgAsyncTask;
 import com.lecturelens.data.prefs.UserSettingsStore;
 import com.lecturelens.domain.model.AuthUser;
@@ -185,7 +186,9 @@ public class SettingsViewModel extends ViewModel {
     }
 
     public void setAppLocale(@NonNull String languageTag) {
-        userSettings.setAppLocale(languageTag);
+        String tag = AppLocale.normalize(languageTag);
+        userSettings.setAppLocale(tag);
+        AppLocale.apply(tag);
     }
 
     public void signOut() {
